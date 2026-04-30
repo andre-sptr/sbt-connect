@@ -171,10 +171,21 @@ Di aaPanel:
 6. Aktifkan SSL dari menu **SSL** jika domain sudah mengarah ke VPS.
 
 Setelah site dibuat, buka konfigurasi Nginx site tersebut dan tambahkan reverse proxy ke aplikasi Next.js.
+Pastikan blok `location ^~ /_next/` diletakkan sebelum `location /`.
+Modifier `^~` penting karena rule regex static/cache aaPanel untuk `.css` dan `.js` bisa mengalahkan `location /_next/` biasa.
 
 Contoh konfigurasi di blok `server`:
 
 ```nginx
+location ^~ /_next/ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+
 location / {
     proxy_pass http://127.0.0.1:3000;
     proxy_http_version 1.1;
@@ -184,6 +195,15 @@ location / {
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "upgrade";
+}
+```
+
+Jika aaPanel membuat rule khusus untuk file statis seperti `.css`, `.js`, gambar, atau font, hapus/nonaktifkan rule tersebut untuk site ini atau pastikan rule tersebut tidak menangani path `/_next/`.
+Rule seperti ini bisa membuat CSS/JS Next.js mendapat `404` karena Nginx mencari file di root static, bukan meneruskan request ke Next.js:
+
+```nginx
+location ~ .*\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
+    root /www/wwwroot/dashboard-bot-public;
 }
 ```
 
@@ -344,6 +364,48 @@ Jika aplikasi mati:
 pm2 restart dashboard-bot
 pm2 logs dashboard-bot
 ```
+
+### CSS/JS tidak render dan `/_next/static` 404
+
+Jika browser console menampilkan error seperti ini:
+
+```text
+GET https://domain-anda.com/_next/static/css/....css 404 (Not Found)
+GET https://domain-anda.com/_next/static/chunks/....js 404 (Not Found)
+```
+
+Pastikan konfigurasi Nginx site memiliki `location ^~ /_next/` yang diproxy ke aplikasi Next.js:
+
+```nginx
+location ^~ /_next/ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+Hapus/nonaktifkan rule static aaPanel yang menangani `.css` atau `.js` dari root dummy. Setelah itu rebuild aplikasi dan restart PM2:
+
+```bash
+cd /www/wwwroot/dashboard-bot
+npm ci
+npm run build
+pm2 restart dashboard-bot
+nginx -t
+systemctl reload nginx
+```
+
+Tes file asset dari Next.js langsung dan dari domain:
+
+```bash
+curl -I http://127.0.0.1:3000/_next/static/css/NAMA_FILE.css
+curl -I https://domain-anda.com/_next/static/css/NAMA_FILE.css
+```
+
+Ambil `NAMA_FILE.css` dari tab Network browser atau dari HTML halaman login. Hasil yang benar adalah `200`, bukan `404`.
 
 ### Scheduler tidak berjalan
 
