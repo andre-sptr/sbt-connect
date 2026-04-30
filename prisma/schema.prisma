@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id             Int      @id @default(autoincrement())
+  name           String
+  groupIds       String
+  spreadsheetUrl String
+  gid            String
+  cellRange      String
+  caption        String
+  cronExpression String
+  timezone       String   @default("Asia/Jakarta")
+  enabled        Boolean  @default(true)
+  lastRunAt      DateTime?
+  nextRunAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  runs           Run[]
+  logs           Log[]
+}
+
+model Run {
+  id            Int       @id @default(autoincrement())
+  projectId     Int
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  action        String
+  status        String
+  startedAt     DateTime  @default(now())
+  finishedAt    DateTime?
+  errorSummary  String?
+  screenshotPath String?
+  logs          Log[]
+}
+
+model Log {
+  id        Int      @id @default(autoincrement())
+  projectId Int?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  runId     Int?
+  run       Run?     @relation(fields: [runId], references: [id], onDelete: Cascade)
+  level     String   @default("info")
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model CachedGroup {
+  id          Int      @id @default(autoincrement())
+  remote      String   @unique
+  name        String
+  refreshedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

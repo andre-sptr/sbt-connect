@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --primary: 0 72% 45%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 86% 97%;
+  --secondary-foreground: 0 72% 33%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --destructive: 0 72% 40%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 0 72% 45%;
+  --radius: 0.5rem;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background:
+    linear-gradient(180deg, rgba(254, 242, 242, 0.75), rgba(248, 250, 252, 0.95) 34rem),
+    hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.table-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.3fr) minmax(170px, 0.8fr) minmax(170px, 0.8fr) minmax(130px, 0.5fr);
+}
+
+@media (max-width: 900px) {
+  .table-grid {
+    grid-template-columns: 1fr;
+  }
+}
