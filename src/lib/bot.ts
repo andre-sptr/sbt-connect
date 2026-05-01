@@ -6,10 +6,12 @@ import { prisma } from "@/lib/prisma";
 import { buildPublishedSheetUrl } from "@/lib/project-validation";
 import { safeJsonArray } from "@/lib/utils";
 import { writeLog } from "@/lib/logging";
+import { notifyAdmin } from "@/lib/notify-admin";
 
 const storageDir = path.join(process.cwd(), "storage", "screenshots");
+const thumbnailDir = path.join(process.cwd(), "storage", "thumbnails");
 
-type BotAction = "full" | "screenshot" | "send";
+type BotAction = "full" | "screenshot" | "send" | "dry-run";
 
 function todayId() {
   return new Intl.DateTimeFormat("en-CA", {
@@ -56,6 +58,25 @@ async function optimizeImage(filePath: string, runId: number, projectId: number)
       level: "warning",
       message: `Optimasi gambar dilewati: ${error instanceof Error ? error.message : "unknown error"}`,
     });
+  }
+}
+
+async function createThumbnail(filePath: string, runId: number, projectId: number): Promise<string | undefined> {
+  try {
+    await fs.mkdir(thumbnailDir, { recursive: true });
+    const thumbPath = path.join(thumbnailDir, `thumb-run-${runId}.png`);
+    const sharp = (await import("sharp")).default;
+    await sharp(filePath).resize({ width: 400 }).png({ quality: 70 }).toFile(thumbPath);
+    await writeLog({ projectId, runId, level: "info", message: "Thumbnail berhasil dibuat." });
+    return thumbPath;
+  } catch (error) {
+    await writeLog({
+      projectId,
+      runId,
+      level: "warning",
+      message: `Pembuatan thumbnail dilewati: ${error instanceof Error ? error.message : "unknown error"}`,
+    });
+    return undefined;
   }
 }
 
@@ -175,6 +196,7 @@ export async function runProject(projectId: number, action: BotAction = "full") 
   });
 
   let screenshotPath: string | undefined;
+  let thumbnailPath: string | undefined;
 
   try {
     await writeLog({ projectId, runId: run.id, message: `Run ${action} dimulai.` });
@@ -187,7 +209,17 @@ export async function runProject(projectId: number, action: BotAction = "full") 
     });
 
     const groupIds = safeJsonArray(project.groupIds);
-    if (action !== "screenshot") {
+
+    if (action === "dry-run") {
+      // Dry run: screenshot saja, tidak kirim ke WA
+      await writeLog({
+        projectId,
+        runId: run.id,
+        level: "info",
+        message: `[DRY RUN] Simulasi pengiriman ke ${groupIds.length} grup. Tidak ada pesan WA dikirim.`,
+      });
+      thumbnailPath = await createThumbnail(screenshotPath, run.id, projectId);
+    } else if (action !== "screenshot") {
       const sent = await sendImageToWhatsapp({
         projectId,
         runId: run.id,
@@ -199,9 +231,11 @@ export async function runProject(projectId: number, action: BotAction = "full") 
       if (!sent) {
         throw new Error("Sebagian pengiriman WhatsApp gagal. Lihat log untuk detail.");
       }
+      // Buat thumbnail untuk histori visual setelah pengiriman sukses
+      thumbnailPath = await createThumbnail(screenshotPath, run.id, projectId);
     }
 
-    if (action === "full") {
+    if (action === "full" || action === "dry-run") {
       await fs.rm(screenshotPath, { force: true });
       screenshotPath = undefined;
       await writeLog({ projectId, runId: run.id, message: "Screenshot sementara dihapus." });
@@ -213,6 +247,7 @@ export async function runProject(projectId: number, action: BotAction = "full") 
         status: "success",
         finishedAt: new Date(),
         screenshotPath,
+        thumbnailPath,
       },
     });
     await prisma.project.update({ where: { id: projectId }, data: { lastRunAt: new Date() } });
@@ -220,6 +255,7 @@ export async function runProject(projectId: number, action: BotAction = "full") 
     return prisma.run.findUnique({ where: { id: run.id } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
+
     await prisma.run.update({
       where: { id: run.id },
       data: {
@@ -227,10 +263,22 @@ export async function runProject(projectId: number, action: BotAction = "full") 
         finishedAt: new Date(),
         errorSummary: message,
         screenshotPath,
+        thumbnailPath,
       },
     });
     await prisma.project.update({ where: { id: projectId }, data: { lastRunAt: new Date() } });
     await writeLog({ projectId, runId: run.id, level: "error", message });
+
+    // Kirim notifikasi ke grup admin (best-effort)
+    const now = new Intl.DateTimeFormat("id-ID", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Asia/Jakarta",
+    }).format(new Date());
+    await notifyAdmin(
+      `⚠️ *[SBT Connect] Run Gagal*\n\nProject: ${project.name}\nAksi: ${action}\nError: ${message.slice(0, 300)}\nWaktu: ${now}`
+    );
+
     throw error;
   }
 }

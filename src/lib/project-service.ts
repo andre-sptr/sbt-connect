@@ -19,6 +19,8 @@ export function projectData(input: {
   cronExpression: string;
   timezone: string;
   enabled: boolean;
+  maxRetries?: number;
+  retryDelayMinutes?: number;
 }) {
   return {
     name: input.name,
@@ -30,6 +32,9 @@ export function projectData(input: {
     cronExpression: input.cronExpression,
     timezone: input.timezone,
     enabled: input.enabled,
+    maxRetries: input.maxRetries ?? 0,
+    retryDelayMinutes: input.retryDelayMinutes ?? 5,
     nextRunAt: input.enabled ? getNextRunAt(input.cronExpression, input.timezone) : null,
   };
 }
+

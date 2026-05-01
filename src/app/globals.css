@@ -21,6 +21,24 @@
   --radius: 0.5rem;
 }
 
+.dark {
+  --background: 222 47% 7%;
+  --foreground: 210 40% 96%;
+  --card: 222 47% 10%;
+  --card-foreground: 210 40% 96%;
+  --primary: 0 72% 55%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 222 47% 15%;
+  --secondary-foreground: 0 72% 80%;
+  --muted: 222 47% 14%;
+  --muted-foreground: 215 20% 55%;
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 222 47% 18%;
+  --input: 222 47% 18%;
+  --ring: 0 72% 55%;
+}
+
 * {
   border-color: hsl(var(--border));
 }
@@ -30,6 +48,12 @@ body {
     linear-gradient(180deg, rgba(254, 242, 242, 0.75), rgba(248, 250, 252, 0.95) 34rem),
     hsl(var(--background));
   color: hsl(var(--foreground));
+}
+
+.dark body {
+  background:
+    linear-gradient(180deg, rgba(120, 20, 20, 0.18), hsl(var(--background)) 30rem),
+    hsl(var(--background));
 }
 
 button,
@@ -49,3 +73,4 @@ select {
     grid-template-columns: 1fr;
   }
 }
+

@@ -1,17 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarClock, Eye, MessageSquareText, Play, Save, Send, Table2 } from "lucide-react";
+import { BarChart3, CalendarClock, Eye, FlaskConical, Globe, Link2, MessageSquareText, Play, Save, Send, Table2, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CronBuilder } from "@/components/cron-builder";
+import { CaptionTemplates } from "@/components/caption-templates";
 import { buildPublishedSheetUrl } from "@/lib/project-validation";
 import { parseGroupIds } from "@/lib/utils";
 import type { ProjectDto, RunDto } from "@/types/dashboard";
+
+type CachedGroup = { remote: string; name: string };
 
 const defaultState = {
   name: "",
@@ -23,6 +28,8 @@ const defaultState = {
   cronExpression: "",
   timezone: "Asia/Jakarta",
   enabled: true,
+  maxRetries: 0,
+  retryDelayMinutes: 5,
 };
 
 export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; projectId?: number }) {
@@ -34,6 +41,24 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [lastRun, setLastRun] = useState<RunDto | null>(null);
+  const [cachedGroups, setCachedGroups] = useState<CachedGroup[]>([]);
+  const [showIframe, setShowIframe] = useState(false);
+  const [progressLogs, setProgressLogs] = useState<Array<{ id: number; level: string; message: string }>>([]);
+  const [runDone, setRunDone] = useState<{ status: string; errorSummary?: string | null } | null>(null);
+  const [publicToken, setPublicToken] = useState<string | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
+
+  useEffect(() => {
+    // Load cached groups for alias labels
+    fetch("/api/groups", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.groups) {
+          setCachedGroups(j.groups.map((g: { id: string; name: string }) => ({ remote: g.id, name: g.name })));
+        }
+      })
+      .catch(() => { });
+  }, []);
 
   useEffect(() => {
     if (mode !== "edit" || !projectId) return;
@@ -54,7 +79,10 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
           cronExpression: json.project.cronExpression,
           timezone: json.project.timezone,
           enabled: json.project.enabled,
+          maxRetries: json.project.maxRetries ?? 0,
+          retryDelayMinutes: json.project.retryDelayMinutes ?? 5,
         });
+        setPublicToken(json.project.publicToken ?? null);
       })
       .finally(() => setLoading(false));
   }, [mode, projectId]);
@@ -83,6 +111,8 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
       cronExpression: state.cronExpression,
       timezone: state.timezone,
       enabled: state.enabled,
+      maxRetries: state.maxRetries,
+      retryDelayMinutes: state.retryDelayMinutes,
     };
   }
 
@@ -106,25 +136,52 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
     router.refresh();
   }
 
-  async function run(action: "full" | "screenshot" | "send") {
+  async function run(action: "full" | "screenshot" | "send" | "dry-run") {
     if (!projectId) return;
     setRunning(action);
     setMessage("");
     setError("");
     setLastRun(null);
+    setProgressLogs([]);
+    setRunDone(null);
     const response = await fetch(`/api/projects/${projectId}/run`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action }),
     });
-    setRunning("");
+
+    // Buka SSE stream untuk progress real-time
+    const sse = new EventSource(`/api/projects/${projectId}/run-stream`);
+    sse.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "log") {
+        setProgressLogs((prev) => [...prev, { id: data.id, level: data.level, message: data.message }]);
+      } else if (data.type === "run-done") {
+        setRunDone({ status: data.status, errorSummary: data.errorSummary });
+        sse.close();
+        setRunning("");
+      } else if (data.type === "no-run") {
+        sse.close();
+        setRunning("");
+      }
+    };
+    sse.onerror = () => { sse.close(); setRunning(""); };
+
     const json = await response.json().catch(() => ({}));
     if (!response.ok) {
+      sse.close();
+      setRunning("");
       setError(json.error || "Run gagal.");
       return;
     }
     setLastRun(json.run);
-    setMessage(action === "screenshot" ? "Screenshot berhasil dibuat." : "Pengiriman selesai.");
+    setMessage(
+      action === "screenshot"
+        ? "Screenshot berhasil dibuat."
+        : action === "dry-run"
+          ? "Dry Run selesai — tidak ada pesan WA dikirim."
+          : "Pengiriman selesai."
+    );
   }
 
   if (loading) return <p className="text-sm text-slate-500">Memuat project...</p>;
@@ -138,16 +195,28 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
           </h1>
           <p className="mt-1 text-sm text-slate-600">Atur sheet, grup tujuan, caption, dan jadwal otomatis.</p>
         </div>
-        <Button onClick={save} disabled={saving}>
-          <Save className="h-4 w-4" />
-          {saving ? "Menyimpan..." : "Simpan"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {mode === "edit" && projectId && (
+            <Link
+              href={`/dashboard/projects/${projectId}/stats`}
+              className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:border-red-200 hover:text-red-700 transition-colors"
+            >
+              <BarChart3 className="h-4 w-4" />
+              Statistik
+            </Link>
+          )}
+          <Button onClick={save} disabled={saving}>
+            <Save className="h-4 w-4" />
+            {saving ? "Menyimpan..." : "Simpan"}
+          </Button>
+        </div>
       </div>
       {message ? <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{message}</p> : null}
       {error ? <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="space-y-6">
+          {/* Tujuan WA */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -172,16 +241,23 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
                   placeholder="120363xxxxxxxx@g.us"
                 />
                 <div className="flex flex-wrap gap-2">
-                  {groupIds.map((groupId) => (
-                    <Badge key={groupId} variant={groupId.endsWith("@g.us") ? "default" : "warning"}>
-                      {groupId}
-                    </Badge>
-                  ))}
+                  {groupIds.map((groupId) => {
+                    const alias = cachedGroups.find((g) => g.remote === groupId)?.name;
+                    return (
+                      <Badge key={groupId} variant={groupId.endsWith("@g.us") ? "default" : "warning"} title={groupId}>
+                        {alias ? `${alias}` : groupId}
+                      </Badge>
+                    );
+                  })}
                 </div>
+                {groupIds.some((id) => !id.endsWith("@g.us")) && (
+                  <p className="text-xs text-amber-600">⚠ Beberapa Group ID tidak valid (harus diakhiri @g.us).</p>
+                )}
               </div>
             </CardContent>
           </Card>
 
+          {/* Spreadsheet */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -217,32 +293,35 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
             </CardContent>
           </Card>
 
+          {/* Pesan & Jadwal */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CalendarClock className="h-5 w-5 text-red-700" />
-                Pesan & Jadwal
+                Pesan &amp; Jadwal
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Caption</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Caption</Label>
+                  <CaptionTemplates onSelect={(tpl) => update("caption", tpl)} />
+                </div>
                 <Textarea
                   value={state.caption}
                   onChange={(event) => update("caption", event.target.value)}
                   placeholder={"*Reporting {projectName}*\nTanggal: {datetime}"}
+                  rows={4}
                 />
                 <p className="text-xs text-slate-500">Placeholder: {"{date}"}, {"{datetime}"}, {"{projectName}"}</p>
               </div>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label>Crontab</Label>
-                  <Input
-                    value={state.cronExpression}
-                    onChange={(event) => update("cronExpression", event.target.value)}
-                    placeholder="Contoh: 0 8 * * *"
-                  />
-                </div>
+
+              <div className="space-y-2">
+                <Label>Jadwal (Crontab)</Label>
+                <CronBuilder value={state.cronExpression} onChange={(cron) => update("cronExpression", cron)} />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Timezone</Label>
                   <Input
@@ -263,10 +342,37 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
                   </button>
                 </div>
               </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Retry Otomatis (maks gagal)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={5}
+                    value={state.maxRetries}
+                    onChange={(event) => update("maxRetries", Number(event.target.value))}
+                  />
+                  <p className="text-xs text-slate-500">0 = tidak retry. Maks 5 kali.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Jeda Retry (menit)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={state.retryDelayMinutes}
+                    onChange={(event) => update("retryDelayMinutes", Number(event.target.value))}
+                    disabled={state.maxRetries === 0}
+                  />
+                  <p className="text-xs text-slate-500">Waktu tunggu antar percobaan ulang.</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
 
+        {/* Sidebar kanan */}
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -285,6 +391,10 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
                     <Send className="h-4 w-4" />
                     {running === "send" ? "Mengirim..." : "Test Send"}
                   </Button>
+                  <Button variant="outline" className="w-full justify-start" disabled={!!running} onClick={() => run("dry-run")}>
+                    <FlaskConical className="h-4 w-4" />
+                    {running === "dry-run" ? "Simulasi..." : "Dry Run"}
+                  </Button>
                   <Button className="w-full justify-start" disabled={!!running} onClick={() => run("full")}>
                     <Play className="h-4 w-4" />
                     {running === "full" ? "Menjalankan..." : "Run Now"}
@@ -293,6 +403,34 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
               )}
             </CardContent>
           </Card>
+
+          {/* Real-time progress SSE */}
+          {(progressLogs.length > 0 || running) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className={`inline-block h-2 w-2 rounded-full ${running ? "animate-pulse bg-amber-500" : runDone?.status === "success" ? "bg-emerald-500" : "bg-red-500"}`} />
+                  {running ? "Sedang berjalan..." : runDone?.status === "success" ? "Selesai" : "Gagal"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-64 overflow-y-auto space-y-1 font-mono text-xs">
+                  {progressLogs.map((log) => (
+                    <div key={log.id} className={`flex gap-2 ${log.level === "error" ? "text-red-600" : log.level === "success" ? "text-emerald-600" : log.level === "warning" ? "text-amber-600" : "text-slate-500"}`}>
+                      <span className="shrink-0 select-none">{log.level === "error" ? "✗" : log.level === "success" ? "✓" : log.level === "warning" ? "⚠" : "·"}</span>
+                      <span>{log.message}</span>
+                    </div>
+                  ))}
+                  {running && <div className="text-slate-400 animate-pulse">▌</div>}
+                </div>
+                {runDone?.errorSummary && (
+                  <p className="mt-2 rounded-md bg-red-50 p-2 text-xs text-red-700">{runDone.errorSummary}</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Screenshot preview */}
           {lastRun?.screenshotPath ? (
             <Card>
               <CardHeader>
@@ -303,6 +441,119 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
               </CardContent>
             </Card>
           ) : null}
+
+          {/* Thumbnail preview */}
+          {lastRun?.thumbnailPath && !lastRun.screenshotPath ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Thumbnail Run</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <img src={`/api/runs/${lastRun.id}/thumbnail?t=${Date.now()}`} alt="Thumbnail run" className="w-full rounded-md border" />
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {/* Preview iframe Google Sheet */}
+          {previewUrl && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-red-700" />
+                    Preview Sheet
+                  </CardTitle>
+                  <button
+                    type="button"
+                    onClick={() => setShowIframe((v) => !v)}
+                    className="text-xs text-red-700 hover:underline"
+                  >
+                    {showIframe ? "Sembunyikan" : "Tampilkan"}
+                  </button>
+                </div>
+              </CardHeader>
+              {showIframe && (
+                <CardContent>
+                  <iframe
+                    src={previewUrl}
+                    className="h-64 w-full rounded-md border"
+                    sandbox="allow-same-origin allow-scripts"
+                    title="Preview Google Sheet"
+                  />
+                  <p className="mt-2 text-xs text-slate-400">Preview instan tanpa screenshot. Tampilan mungkin berbeda dengan hasil screenshot.</p>
+                </CardContent>
+              )}
+            </Card>
+          )}
+
+          {/* Public Token Card */}
+          {mode === "edit" && projectId && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Link2 className="h-4 w-4 text-red-700" />
+                  Halaman Publik
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {publicToken ? (
+                  <>
+                    <p className="text-xs text-slate-500">URL halaman status publik:</p>
+                    <div className="break-all rounded-md bg-slate-50 p-2 text-xs font-mono text-slate-700">
+                      {typeof window !== "undefined" ? `${window.location.origin}/status/${publicToken}` : `/status/${publicToken}`}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1 text-xs"
+                        onClick={() => {
+                          if (typeof window !== "undefined") {
+                            navigator.clipboard.writeText(`${window.location.origin}/status/${publicToken}`);
+                          }
+                        }}
+                      >
+                        Copy URL
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="text-red-600 hover:text-red-700"
+                        disabled={tokenLoading}
+                        title="Cabut akses publik"
+                        onClick={async () => {
+                          setTokenLoading(true);
+                          await fetch(`/api/projects/${projectId}/token`, { method: "DELETE" });
+                          setPublicToken(null);
+                          setTokenLoading(false);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-slate-500">Buat URL publik untuk stakeholder tanpa perlu login.</p>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={tokenLoading}
+                      onClick={async () => {
+                        setTokenLoading(true);
+                        const res = await fetch(`/api/projects/${projectId}/token`, { method: "POST" });
+                        const json = await res.json();
+                        if (json.publicToken) setPublicToken(json.publicToken);
+                        setTokenLoading(false);
+                      }}
+                    >
+                      <Link2 className="h-4 w-4" />
+                      {tokenLoading ? "Membuat..." : "Generate Link Publik"}
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

@@ -11,6 +11,8 @@ export const projectSchema = z.object({
   cronExpression: z.string().trim().min(5, "Cron expression wajib diisi."),
   timezone: z.string().trim().default("Asia/Jakarta"),
   enabled: z.boolean().default(true),
+  maxRetries: z.number().int().min(0).max(5).default(0),
+  retryDelayMinutes: z.number().int().min(1).max(60).default(5),
 });
 
 export type ProjectInput = z.infer<typeof projectSchema>;

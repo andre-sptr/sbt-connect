@@ -18,6 +18,44 @@ function getState() {
   return globalForScheduler.scheduler;
 }
 
+async function runWithRetry(projectId: number, maxRetries: number, retryDelayMinutes: number) {
+  let attempt = 0;
+
+  const tryRun = async (): Promise<void> => {
+    try {
+      if (attempt > 0) {
+        await writeLog({
+          projectId,
+          level: "info",
+          message: `Mencoba ulang run (${attempt}/${maxRetries}) setelah gagal sebelumnya.`,
+        });
+      } else {
+        await writeLog({ projectId, message: "Scheduler menjalankan projek." });
+      }
+      await runProject(projectId, "full");
+    } catch (error) {
+      await writeLog({
+        projectId,
+        level: "error",
+        message: `Scheduler gagal: ${error instanceof Error ? error.message : "unknown error"}`,
+      });
+
+      if (attempt < maxRetries) {
+        attempt++;
+        const delayMs = retryDelayMinutes * 60 * 1000;
+        await writeLog({
+          projectId,
+          level: "info",
+          message: `Retry ${attempt}/${maxRetries} dijadwalkan dalam ${retryDelayMinutes} menit.`,
+        });
+        setTimeout(tryRun, delayMs);
+      }
+    }
+  };
+
+  await tryRun();
+}
+
 export async function reloadScheduler() {
   const state = getState();
   for (const task of state.tasks.values()) task.stop();
@@ -34,14 +72,7 @@ export async function reloadScheduler() {
       project.cronExpression,
       async () => {
         try {
-          await writeLog({ projectId: project.id, message: "Scheduler menjalankan projek." });
-          await runProject(project.id, "full");
-        } catch (error) {
-          await writeLog({
-            projectId: project.id,
-            level: "error",
-            message: `Scheduler gagal: ${error instanceof Error ? error.message : "unknown error"}`,
-          });
+          await runWithRetry(project.id, project.maxRetries, project.retryDelayMinutes);
         } finally {
           await prisma.project.update({
             where: { id: project.id },

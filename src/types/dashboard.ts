@@ -9,6 +9,9 @@ export type ProjectDto = {
   cronExpression: string;
   timezone: string;
   enabled: boolean;
+  maxRetries: number;
+  retryDelayMinutes: number;
+  publicToken: string | null;
   lastRunAt: string | null;
   nextRunAt: string | null;
   createdAt: string;
@@ -24,6 +27,7 @@ export type RunDto = {
   finishedAt: string | null;
   errorSummary: string | null;
   screenshotPath: string | null;
+  thumbnailPath: string | null;
   project?: { name: string };
 };
 

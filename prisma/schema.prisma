@@ -8,35 +8,39 @@ datasource db {
 }
 
 model Project {
-  id             Int      @id @default(autoincrement())
-  name           String
-  groupIds       String
-  spreadsheetUrl String
-  gid            String
-  cellRange      String
-  caption        String
-  cronExpression String
-  timezone       String   @default("Asia/Jakarta")
-  enabled        Boolean  @default(true)
-  lastRunAt      DateTime?
-  nextRunAt      DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  runs           Run[]
-  logs           Log[]
+  id                 Int      @id @default(autoincrement())
+  name               String
+  groupIds           String
+  spreadsheetUrl     String
+  gid                String
+  cellRange          String
+  caption            String
+  cronExpression     String
+  timezone           String   @default("Asia/Jakarta")
+  enabled            Boolean  @default(true)
+  maxRetries         Int      @default(0)
+  retryDelayMinutes  Int      @default(5)
+  publicToken        String?  @unique
+  lastRunAt          DateTime?
+  nextRunAt          DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  runs               Run[]
+  logs               Log[]
 }
 
 model Run {
-  id            Int       @id @default(autoincrement())
-  projectId     Int
-  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  action        String
-  status        String
-  startedAt     DateTime  @default(now())
-  finishedAt    DateTime?
-  errorSummary  String?
+  id             Int       @id @default(autoincrement())
+  projectId      Int
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  action         String
+  status         String
+  startedAt      DateTime  @default(now())
+  finishedAt     DateTime?
+  errorSummary   String?
   screenshotPath String?
-  logs          Log[]
+  thumbnailPath  String?
+  logs           Log[]
 }
 
 model Log {

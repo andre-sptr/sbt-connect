@@ -9,9 +9,9 @@ export async function POST(request: Request, context: Context) {
 
   const { id } = await context.params;
   const projectId = Number(id);
-  const body = (await request.json().catch(() => ({}))) as { action?: "full" | "screenshot" | "send" };
+  const body = (await request.json().catch(() => ({}))) as { action?: "full" | "screenshot" | "send" | "dry-run" };
   const action = body.action || "full";
-  if (!["full", "screenshot", "send"].includes(action)) {
+  if (!["full", "screenshot", "send", "dry-run"].includes(action)) {
     return Response.json({ error: "Action tidak valid." }, { status: 400 });
   }
 
