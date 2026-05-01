@@ -13,7 +13,7 @@ export async function GET() {
     prisma.run.findMany({
       include: { project: { select: { name: true } } },
       orderBy: { startedAt: "desc" },
-      take: 8,
+      take: 10,
     }),
     prisma.run.count({ where: { status: "failed" } }),
   ]);

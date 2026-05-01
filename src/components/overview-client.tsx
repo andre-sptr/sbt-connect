@@ -15,6 +15,10 @@ type Overview = {
   nextProject: ProjectDto | null;
 };
 
+function cleanRunMessage(message: string) {
+  return message.replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "");
+}
+
 export function OverviewClient() {
   const [data, setData] = useState<Overview | null>(null);
   const [error, setError] = useState("");
@@ -75,15 +79,20 @@ export function OverviewClient() {
               <p className="p-4 text-sm text-slate-500">Belum ada run.</p>
             ) : (
               data.latestRuns.map((run) => (
-                <div key={run.id} className="grid gap-3 p-4 md:grid-cols-[1fr_140px_180px] md:items-center">
-                  <div>
+                <div key={run.id} className="grid items-start gap-3 p-4 md:grid-cols-[minmax(0,1fr)_120px]">
+                  <div className="min-w-0">
                     <p className="font-medium text-slate-900">{run.project?.name || `Project #${run.projectId}`}</p>
                     <p className="text-sm text-slate-500">{run.action} · {formatDateTime(run.startedAt)}</p>
                   </div>
-                  <Badge variant={run.status === "success" ? "success" : run.status === "failed" ? "destructive" : "warning"}>
+                  <Badge
+                    className="w-fit justify-self-start capitalize md:justify-self-end"
+                    variant={run.status === "success" ? "success" : run.status === "failed" ? "destructive" : "warning"}
+                  >
                     {run.status}
                   </Badge>
-                  <p className="text-sm text-slate-500">{run.errorSummary || formatDateTime(run.finishedAt)}</p>
+                  <p className="min-w-0 whitespace-pre-wrap break-words text-sm leading-6 text-slate-500 [overflow-wrap:anywhere] md:col-span-2">
+                    {run.errorSummary ? cleanRunMessage(run.errorSummary) : `Selesai: ${formatDateTime(run.finishedAt)}`}
+                  </p>
                 </div>
               ))
             )}

@@ -16,6 +16,19 @@ const DAY_OPTIONS = [
   { label: "30 Hari", value: "30" },
 ];
 
+function cleanLogMessage(message: string) {
+  return message.replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "");
+}
+
+type LogsPagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+};
+
 export function LogsClient() {
   const [logs, setLogs] = useState<LogDto[]>([]);
   const [projects, setProjects] = useState<ProjectDto[]>([]);
@@ -23,6 +36,15 @@ export function LogsClient() {
   const [level, setLevel] = useState("");
   const [q, setQ] = useState("");
   const [days, setDays] = useState("0");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<LogsPagination>({
+    page: 1,
+    pageSize: 50,
+    total: 0,
+    totalPages: 1,
+    hasPreviousPage: false,
+    hasNextPage: false,
+  });
   const [loading, setLoading] = useState(true);
 
   async function loadProjects() {
@@ -37,9 +59,14 @@ export function LogsClient() {
     if (level) query.set("level", level);
     if (q.trim()) query.set("q", q.trim());
     if (days !== "0") query.set("days", days);
+    query.set("page", String(page));
     const response = await fetch(`/api/logs?${query.toString()}`, { cache: "no-store" });
     setLoading(false);
-    if (response.ok) setLogs((await response.json()).logs);
+    if (response.ok) {
+      const json: { logs: LogDto[]; pagination?: LogsPagination } = await response.json();
+      setLogs(json.logs);
+      if (json.pagination) setPagination(json.pagination);
+    }
   }
 
   useEffect(() => {
@@ -51,7 +78,27 @@ export function LogsClient() {
     const timer = window.setInterval(loadLogs, 8000);
     return () => window.clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, level, q, days]);
+  }, [projectId, level, q, days, page]);
+
+  function updateProjectId(value: string) {
+    setProjectId(value);
+    setPage(1);
+  }
+
+  function updateLevel(value: string) {
+    setLevel(value);
+    setPage(1);
+  }
+
+  function updateQuery(value: string) {
+    setQ(value);
+    setPage(1);
+  }
+
+  function updateDays(value: string) {
+    setDays(value);
+    setPage(1);
+  }
 
   function levelVariant(value: string) {
     if (value === "success") return "success";
@@ -96,14 +143,14 @@ export function LogsClient() {
               className="pl-9"
               placeholder="Cari pesan log..."
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => updateQuery(e.target.value)}
             />
           </div>
           {/* Filter baris 2: project, level, days */}
           <div className="grid gap-3 md:grid-cols-3">
             <select
               value={projectId}
-              onChange={(event) => setProjectId(event.target.value)}
+              onChange={(event) => updateProjectId(event.target.value)}
               className="h-10 rounded-md border bg-white px-3 text-sm"
             >
               <option value="">Semua project</option>
@@ -115,7 +162,7 @@ export function LogsClient() {
             </select>
             <select
               value={level}
-              onChange={(event) => setLevel(event.target.value)}
+              onChange={(event) => updateLevel(event.target.value)}
               className="h-10 rounded-md border bg-white px-3 text-sm"
             >
               <option value="">Semua level</option>
@@ -126,7 +173,7 @@ export function LogsClient() {
             </select>
             <select
               value={days}
-              onChange={(event) => setDays(event.target.value)}
+              onChange={(event) => updateDays(event.target.value)}
               className="h-10 rounded-md border bg-white px-3 text-sm"
             >
               {DAY_OPTIONS.map((opt) => (
@@ -143,11 +190,15 @@ export function LogsClient() {
               <p className="p-4 text-sm text-slate-500">Tidak ada log yang cocok dengan filter.</p>
             ) : null}
             {logs.map((log) => (
-              <div key={log.id} className="grid gap-3 p-4 lg:grid-cols-[160px_130px_1fr]">
-                <p className="text-sm text-slate-500">{formatDateTime(log.createdAt)}</p>
-                <Badge variant={levelVariant(log.level)}>{log.level}</Badge>
-                <div>
-                  <p className="text-sm text-slate-950">{log.message}</p>
+              <div key={log.id} className="grid items-start gap-3 p-4 lg:grid-cols-[180px_96px_minmax(0,1fr)]">
+                <p className="whitespace-nowrap text-sm text-slate-500">{formatDateTime(log.createdAt)}</p>
+                <Badge className="w-fit justify-self-start capitalize" variant={levelVariant(log.level)}>
+                  {log.level}
+                </Badge>
+                <div className="min-w-0">
+                  <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-950 [overflow-wrap:anywhere]">
+                    {cleanLogMessage(log.message)}
+                  </p>
                   <p className="mt-1 text-xs text-slate-500">
                     {log.project?.name || "System"} {log.run ? `· ${log.run.action}/${log.run.status}` : ""}
                   </p>
@@ -155,8 +206,36 @@ export function LogsClient() {
               </div>
             ))}
           </div>
-          {logs.length > 0 && (
-            <p className="text-right text-xs text-slate-400">{logs.length} entri ditampilkan</p>
+          {pagination.total > 0 && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-slate-400">
+                Menampilkan {(pagination.page - 1) * pagination.pageSize + 1}-
+                {Math.min(pagination.page * pagination.pageSize, pagination.total)} dari {pagination.total} entri
+              </p>
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasPreviousPage || loading}
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                >
+                  Previous
+                </Button>
+                <span className="min-w-24 text-center text-xs text-slate-500">
+                  Halaman {pagination.page} / {pagination.totalPages}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasNextPage || loading}
+                  onClick={() => setPage((current) => current + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

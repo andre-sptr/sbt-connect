@@ -14,11 +14,29 @@ type WahaGroup = {
   refreshedAt?: string;
 };
 
+type GroupsPagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+};
+
 export function GroupsClient() {
   const [search, setSearch] = useState("");
   const [groups, setGroups] = useState<WahaGroup[]>([]);
   const [projects, setProjects] = useState<ProjectDto[]>([]);
   const [selectedProject, setSelectedProject] = useState("");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<GroupsPagination>({
+    page: 1,
+    pageSize: 20,
+    total: 0,
+    totalPages: 1,
+    hasPreviousPage: false,
+    hasNextPage: false,
+  });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -35,7 +53,10 @@ export function GroupsClient() {
   async function loadGroups() {
     setLoading(true);
     setError("");
-    const response = await fetch(`/api/groups?search=${encodeURIComponent(search)}`, { cache: "no-store" });
+    const query = new URLSearchParams();
+    if (search.trim()) query.set("search", search.trim());
+    query.set("page", String(page));
+    const response = await fetch(`/api/groups?${query.toString()}`, { cache: "no-store" });
     setLoading(false);
     const json = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -43,6 +64,7 @@ export function GroupsClient() {
       return;
     }
     setGroups(json.groups);
+    if (json.pagination) setPagination(json.pagination);
   }
 
   async function refreshGroups() {
@@ -67,7 +89,12 @@ export function GroupsClient() {
   useEffect(() => {
     const timer = window.setTimeout(loadGroups, 300);
     return () => window.clearTimeout(timer);
-  }, [search]);
+  }, [search, page]);
+
+  function updateSearch(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
 
   async function copyGroup(group: WahaGroup) {
     await navigator.clipboard.writeText(group.id);
@@ -103,7 +130,7 @@ export function GroupsClient() {
           <div className="grid gap-3 lg:grid-cols-[1fr_280px_auto]">
             <div className="relative">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              <Input className="pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari nama atau ID grup..." />
+              <Input className="pl-9" value={search} onChange={(event) => updateSearch(event.target.value)} placeholder="Cari nama atau ID grup..." />
             </div>
             <select
               value={selectedProject}
@@ -146,6 +173,37 @@ export function GroupsClient() {
               </div>
             ))}
           </div>
+          {pagination.total > 0 && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-slate-400">
+                Menampilkan {(pagination.page - 1) * pagination.pageSize + 1}-
+                {Math.min(pagination.page * pagination.pageSize, pagination.total)} dari {pagination.total} grup
+              </p>
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasPreviousPage || loading}
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                >
+                  Previous
+                </Button>
+                <span className="min-w-24 text-center text-xs text-slate-500">
+                  Halaman {pagination.page} / {pagination.totalPages}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasNextPage || loading}
+                  onClick={() => setPage((current) => current + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

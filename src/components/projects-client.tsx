@@ -10,27 +10,57 @@ import { Input } from "@/components/ui/input";
 import { formatDateTime } from "@/lib/utils";
 import type { ProjectDto } from "@/types/dashboard";
 
+type ProjectsPagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  activeTotal: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+};
+
 export function ProjectsClient() {
   const [projects, setProjects] = useState<ProjectDto[]>([]);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<ProjectsPagination>({
+    page: 1,
+    pageSize: 10,
+    total: 0,
+    activeTotal: 0,
+    totalPages: 1,
+    hasPreviousPage: false,
+    hasNextPage: false,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   async function load() {
     setLoading(true);
-    const response = await fetch(`/api/projects?search=${encodeURIComponent(search)}`, { cache: "no-store" });
+    const query = new URLSearchParams();
+    if (search.trim()) query.set("search", search.trim());
+    query.set("page", String(page));
+    const response = await fetch(`/api/projects?${query.toString()}`, { cache: "no-store" });
     setLoading(false);
     if (!response.ok) {
       setError("Gagal memuat projek.");
       return;
     }
-    setProjects((await response.json()).projects);
+    const json: { projects: ProjectDto[]; pagination?: ProjectsPagination } = await response.json();
+    setProjects(json.projects);
+    if (json.pagination) setPagination(json.pagination);
   }
 
   useEffect(() => {
     const timer = window.setTimeout(load, 250);
     return () => window.clearTimeout(timer);
-  }, [search]);
+  }, [search, page]);
+
+  function updateSearch(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
 
   async function remove(id: number) {
     if (!window.confirm("Hapus projek ini?")) return;
@@ -52,14 +82,17 @@ export function ProjectsClient() {
     load();
   }
 
-  const activeCount = useMemo(() => projects.filter((project) => project.enabled).length, [projects]);
+  const activeCount = useMemo(
+    () => pagination.activeTotal || projects.filter((project) => project.enabled).length,
+    [pagination.activeTotal, projects]
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal text-slate-950">Projects</h1>
-          <p className="mt-1 text-sm text-slate-600">{activeCount} projek aktif dari {projects.length} projek.</p>
+          <p className="mt-1 text-sm text-slate-600">{activeCount} projek aktif dari {pagination.total || projects.length} projek.</p>
         </div>
         <Button asChild>
           <Link href="/dashboard/projects/new">
@@ -72,7 +105,7 @@ export function ProjectsClient() {
         <CardContent className="pt-5">
           <div className="relative mb-4">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-            <Input className="pl-9" placeholder="Cari nama, URL, atau GID..." value={search} onChange={(event) => setSearch(event.target.value)} />
+            <Input className="pl-9" placeholder="Cari nama, URL, atau GID..." value={search} onChange={(event) => updateSearch(event.target.value)} />
           </div>
           {error ? <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
           <div className="overflow-hidden rounded-md border">
@@ -114,6 +147,37 @@ export function ProjectsClient() {
               </div>
             ))}
           </div>
+          {pagination.total > 0 && (
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-slate-400">
+                Menampilkan {(pagination.page - 1) * pagination.pageSize + 1}-
+                {Math.min(pagination.page * pagination.pageSize, pagination.total)} dari {pagination.total} project
+              </p>
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasPreviousPage || loading}
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                >
+                  Previous
+                </Button>
+                <span className="min-w-24 text-center text-xs text-slate-500">
+                  Halaman {pagination.page} / {pagination.totalPages}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasNextPage || loading}
+                  onClick={() => setPage((current) => current + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
