@@ -18,7 +18,6 @@ async function replyText(chatId: string, text: string): Promise<void> {
       body: JSON.stringify({ session: config.session, chatId, text }),
     });
   } catch {
-    // best-effort
   }
 }
 

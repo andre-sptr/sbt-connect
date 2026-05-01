@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-type Frequency = "daily" | "weekly" | "monthly" | "custom";
+import { buildCron, cronValuesEqual, parseCronSchedule, type Frequency } from "@/lib/cron-schedule";
 
 const DAYS = [
   { label: "Sen", value: "1" },
@@ -16,18 +15,6 @@ const DAYS = [
   { label: "Sab", value: "6" },
   { label: "Min", value: "0" },
 ];
-
-function buildCron(freq: Frequency, hour: number, minute: number, days: string[], dayOfMonth: number): string {
-  const m = minute.toString().padStart(2, "0");
-  const h = hour.toString();
-  if (freq === "daily") return `${m} ${h} * * *`;
-  if (freq === "weekly") {
-    const d = days.length === 0 ? "*" : days.sort((a, b) => Number(a) - Number(b)).join(",");
-    return `${m} ${h} * * ${d}`;
-  }
-  if (freq === "monthly") return `${m} ${h} ${dayOfMonth} * *`;
-  return "";
-}
 
 function humanReadable(freq: Frequency, hour: number, minute: number, days: string[], dayOfMonth: number): string {
   const time = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
@@ -48,22 +35,36 @@ interface CronBuilderProps {
 }
 
 export function CronBuilder({ value, onChange }: CronBuilderProps) {
-  const [freq, setFreq] = useState<Frequency>("daily");
-  const [hour, setHour] = useState(8);
-  const [minute, setMinute] = useState(0);
-  const [days, setDays] = useState<string[]>(["1", "2", "3", "4", "5"]);
-  const [dayOfMonth, setDayOfMonth] = useState(1);
-  const [customCron, setCustomCron] = useState(value || "");
+  const initialSchedule = parseCronSchedule(value);
+  const [freq, setFreq] = useState<Frequency>(initialSchedule.freq);
+  const [hour, setHour] = useState(initialSchedule.hour);
+  const [minute, setMinute] = useState(initialSchedule.minute);
+  const [days, setDays] = useState<string[]>(initialSchedule.days);
+  const [dayOfMonth, setDayOfMonth] = useState(initialSchedule.dayOfMonth);
+  const [customCron, setCustomCron] = useState(initialSchedule.customCron);
 
-  // Sync outward
   useEffect(() => {
+    const schedule = parseCronSchedule(value);
+    const currentCron = freq === "custom" ? customCron : buildCron(freq, hour, minute, days, dayOfMonth);
+    if (cronValuesEqual(value, currentCron)) return;
+
+    setFreq(schedule.freq);
+    setHour(schedule.hour);
+    setMinute(schedule.minute);
+    setDays(schedule.days);
+    setDayOfMonth(schedule.dayOfMonth);
+    setCustomCron(schedule.customCron);
+  }, [value]);
+
+  useEffect(() => {
+    const cron = freq === "custom" ? customCron : buildCron(freq, hour, minute, days, dayOfMonth);
+    if (cronValuesEqual(value, cron)) return;
+
     if (freq === "custom") {
       onChange(customCron);
     } else {
-      const cron = buildCron(freq, hour, minute, days, dayOfMonth);
       onChange(cron);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [freq, hour, minute, days, dayOfMonth, customCron]);
 
   function toggleDay(d: string) {

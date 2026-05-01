@@ -24,7 +24,6 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Hanya proses event 'message'
   if (body.event !== "message") {
     return Response.json({ ok: true, skipped: true });
   }
@@ -34,17 +33,14 @@ export async function POST(request: Request) {
   const chatId = payload?.id?.remote ?? payload?.from;
   const fromMe = payload?.id?.fromMe ?? false;
 
-  // Abaikan pesan dari bot sendiri
   if (fromMe || !text || !chatId) {
     return Response.json({ ok: true, skipped: true });
   }
 
-  // Parse command (case-insensitive)
   const lower = text.toLowerCase();
   const ctx = { chatId, args: "" };
 
   if (lower === "!laporan") {
-    // Fire & forget — jangan block response
     handleLaporan(ctx).catch(() => {});
   } else if (lower === "!status") {
     handleStatus(ctx).catch(() => {});
@@ -53,7 +49,6 @@ export async function POST(request: Request) {
   } else if (lower === "!run") {
     handleRun({ chatId, args: "" }).catch(() => {});
   } else {
-    // Bukan command yang dikenal — abaikan diam-diam
     return Response.json({ ok: true, skipped: true });
   }
 

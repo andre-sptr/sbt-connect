@@ -13,7 +13,6 @@ export async function GET(request: Request, context: Context) {
     return new Response("ID tidak valid.", { status: 400 });
   }
 
-  // Temukan run terbaru yang sedang berjalan
   const run = await prisma.run.findFirst({
     where: { projectId, status: "running" },
     orderBy: { startedAt: "desc" },
@@ -35,12 +34,10 @@ export async function GET(request: Request, context: Context) {
         return;
       }
 
-      // Kirim runId agar client bisa track
       controller.enqueue(
         encoder.encode(`data: ${JSON.stringify({ type: "run-started", runId: run.id, action: run.action })}\n\n`)
       );
 
-      // Poll logs setiap 500ms
       const interval = setInterval(async () => {
         if (closed) {
           clearInterval(interval);
@@ -67,7 +64,6 @@ export async function GET(request: Request, context: Context) {
             );
           }
 
-          // Cek apakah run sudah selesai
           const updated = await prisma.run.findUnique({ where: { id: run.id } });
           if (updated && updated.status !== "running") {
             controller.enqueue(

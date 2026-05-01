@@ -211,7 +211,6 @@ export async function runProject(projectId: number, action: BotAction = "full") 
     const groupIds = safeJsonArray(project.groupIds);
 
     if (action === "dry-run") {
-      // Dry run: screenshot saja, tidak kirim ke WA
       await writeLog({
         projectId,
         runId: run.id,
@@ -231,7 +230,6 @@ export async function runProject(projectId: number, action: BotAction = "full") 
       if (!sent) {
         throw new Error("Sebagian pengiriman WhatsApp gagal. Lihat log untuk detail.");
       }
-      // Buat thumbnail untuk histori visual setelah pengiriman sukses
       thumbnailPath = await createThumbnail(screenshotPath, run.id, projectId);
     }
 
@@ -269,7 +267,6 @@ export async function runProject(projectId: number, action: BotAction = "full") 
     await prisma.project.update({ where: { id: projectId }, data: { lastRunAt: new Date() } });
     await writeLog({ projectId, runId: run.id, level: "error", message });
 
-    // Kirim notifikasi ke grup admin (best-effort)
     const now = new Intl.DateTimeFormat("id-ID", {
       dateStyle: "medium",
       timeStyle: "short",

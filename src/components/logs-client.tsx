@@ -77,7 +77,6 @@ export function LogsClient() {
     loadLogs();
     const timer = window.setInterval(loadLogs, 8000);
     return () => window.clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, level, q, days, page]);
 
   function updateProjectId(value: string) {

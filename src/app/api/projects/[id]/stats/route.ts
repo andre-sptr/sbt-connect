@@ -25,13 +25,9 @@ export async function GET(_request: Request, context: Context) {
   });
 
   const recentRuns = allRuns.filter((r) => r.startedAt >= sevenDaysAgo);
-
-  // Success rate 7 hari
   const totalRecent = recentRuns.length;
   const successRecent = recentRuns.filter((r) => r.status === "success").length;
   const successRate = totalRecent > 0 ? Math.round((successRecent / totalRecent) * 100) : null;
-
-  // Rata-rata durasi (hanya yang sudah selesai)
   const finishedRuns = recentRuns.filter((r) => r.finishedAt != null);
   const avgDurationMs =
     finishedRuns.length > 0
@@ -41,7 +37,6 @@ export async function GET(_request: Request, context: Context) {
         )
       : null;
 
-  // Runs per hari (7 hari terakhir)
   const dailyMap: Record<string, { success: number; failed: number; running: number }> = {};
   for (let i = 6; i >= 0; i--) {
     const d = new Date();

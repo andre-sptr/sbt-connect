@@ -57,7 +57,6 @@ export function ProjectEditor({ mode, projectId, defaultTimezone }: ProjectEdito
   const [tokenLoading, setTokenLoading] = useState(false);
 
   useEffect(() => {
-    // Load cached groups for alias labels
     fetch("/api/groups", { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => {
@@ -165,7 +164,6 @@ export function ProjectEditor({ mode, projectId, defaultTimezone }: ProjectEdito
       body: JSON.stringify({ action }),
     });
 
-    // Buka SSE stream untuk progress real-time
     const sse = new EventSource(`/api/projects/${projectId}/run-stream`);
     sse.onmessage = (event) => {
       const data = JSON.parse(event.data);

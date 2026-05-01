@@ -24,7 +24,5 @@ export async function notifyAdmin(message: string): Promise<void> {
       }),
     });
   } catch {
-    // Notifikasi admin adalah fitur best-effort; jangan lempar error agar tidak
-    // mengganggu alur utama bot.
   }
 }
