@@ -225,8 +225,8 @@ https://bot.domain-anda.com
 Login aplikasi memakai nilai dari `.env`:
 
 ```text
-Username: USERNAME
-Password: PASSWORD
+Username: LOGIN_USERNAME
+Password: LOGIN_PASSWORD
 ```
 
 ## 7. Menjalankan WAHA di VPS yang sama
