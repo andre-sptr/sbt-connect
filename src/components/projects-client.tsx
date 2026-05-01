@@ -110,8 +110,8 @@ export function ProjectsClient() {
             <Input className="pl-9" placeholder="Cari nama, URL, atau GID..." value={search} onChange={(event) => updateSearch(event.target.value)} />
           </div>
           {error ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{error}</p> : null}
-          <div className="overflow-hidden rounded-md border">
-            <div className="table-grid bg-muted px-4 py-3 text-xs font-semibold uppercase text-muted-foreground">
+          <div className="rounded-md border max-[900px]:space-y-3 max-[900px]:border-0 min-[901px]:overflow-hidden">
+            <div className="table-grid bg-muted px-4 py-3 text-xs font-semibold uppercase text-muted-foreground max-[900px]:hidden">
               <span>Project</span>
               <span>Schedule</span>
               <span>Status</span>
@@ -124,7 +124,7 @@ export function ProjectsClient() {
                 key={project.id}
                 role="link"
                 tabIndex={0}
-                className="table-grid cursor-pointer gap-3 border-t px-4 py-4 text-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="table-grid cursor-pointer gap-4 rounded-lg border bg-card p-4 text-sm shadow-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-[901px]:gap-3 min-[901px]:rounded-none min-[901px]:border-x-0 min-[901px]:border-b-0 min-[901px]:border-t min-[901px]:bg-transparent min-[901px]:px-4 min-[901px]:py-4 min-[901px]:shadow-none"
                 onClick={() => router.push(`/dashboard/projects/${project.id}`)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
@@ -133,20 +133,27 @@ export function ProjectsClient() {
                   }
                 }}
               >
-                <div>
-                  <p className="font-semibold text-foreground">{project.name}</p>
+                <div className="min-w-0 [overflow-wrap:anywhere]">
+                  <div className="flex items-start justify-between gap-3 min-[901px]:block">
+                    <p className="min-w-0 font-semibold text-foreground [overflow-wrap:anywhere]">{project.name}</p>
+                    <Badge className="shrink-0 min-[901px]:hidden" variant={project.enabled ? "success" : "muted"}>
+                      {project.enabled ? "Aktif" : "Paused"}
+                    </Badge>
+                  </div>
                   <p className="mt-1 text-muted-foreground">{project.groupIds.length} grup · {project.cellRange}</p>
                 </div>
-                <div>
-                  <p className="font-medium text-foreground">{project.cronExpression}</p>
-                  <p className="mt-1 text-muted-foreground">Next: {formatDateTime(project.nextRunAt)}</p>
+                <div className="min-w-0 rounded-md bg-muted/50 p-3 min-[901px]:rounded-none min-[901px]:bg-transparent min-[901px]:p-0">
+                  <p className="text-[11px] font-semibold uppercase text-muted-foreground min-[901px]:hidden">Schedule</p>
+                  <p className="mt-1 font-medium text-foreground [overflow-wrap:anywhere] min-[901px]:mt-0">{project.cronExpression}</p>
+                  <p className="mt-1 text-muted-foreground [overflow-wrap:anywhere]">Next: {formatDateTime(project.nextRunAt)}</p>
                 </div>
-                <div>
-                  <Badge variant={project.enabled ? "success" : "muted"}>{project.enabled ? "Aktif" : "Paused"}</Badge>
-                  <p className="mt-2 text-muted-foreground">Last: {formatDateTime(project.lastRunAt)}</p>
+                <div className="min-w-0 rounded-md bg-muted/50 p-3 min-[901px]:rounded-none min-[901px]:bg-transparent min-[901px]:p-0">
+                  <Badge className="max-[900px]:hidden" variant={project.enabled ? "success" : "muted"}>{project.enabled ? "Aktif" : "Paused"}</Badge>
+                  <p className="text-[11px] font-semibold uppercase text-muted-foreground min-[901px]:hidden">Last run</p>
+                  <p className="mt-1 text-muted-foreground [overflow-wrap:anywhere] min-[901px]:mt-2">Last: {formatDateTime(project.lastRunAt)}</p>
                 </div>
                 <div
-                  className="flex flex-wrap gap-2"
+                  className="flex flex-wrap gap-2 max-[900px]:pt-1"
                   onClick={(event) => event.stopPropagation()}
                   onKeyDown={(event) => event.stopPropagation()}
                 >
