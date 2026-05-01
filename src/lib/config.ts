@@ -1,9 +1,9 @@
 export const staticLogin = {
   get username() {
-    return getRequiredEnv("USERNAME");
+    return getRequiredEnv("LOGIN_USERNAME");
   },
   get password() {
-    return getRequiredEnv("PASSWORD");
+    return getRequiredEnv("LOGIN_PASSWORD");
   },
 };
 

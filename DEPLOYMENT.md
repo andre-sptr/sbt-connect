@@ -91,8 +91,8 @@ Isi contoh:
 ```env
 DATABASE_URL="file:../database/dashboard-bot.db"
 AUTH_SECRET="ganti-dengan-hasil-openssl"
-USERNAME="ganti-dengan-username-login"
-PASSWORD="ganti-dengan-password-login-kuat"
+LOGIN_USERNAME="ganti-dengan-username-login"
+LOGIN_PASSWORD="ganti-dengan-password-login-kuat"
 WAHA_URL="https://waha.domain-anda.com"
 WAHA_SESSION="default"
 WAHA_API_KEY="ganti-dengan-api-key-waha"
