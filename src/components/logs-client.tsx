@@ -121,7 +121,7 @@ export function LogsClient() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal text-slate-950">Logs</h1>
-          <p className="mt-1 text-sm text-slate-600">Riwayat proses bot dan scheduler dengan auto refresh.</p>
+          <p className="mt-1 text-sm text-slate-600">Riwayat proses bot dan scheduler.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleExport} title="Export ke CSV">

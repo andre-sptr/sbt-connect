@@ -123,7 +123,7 @@ export function GroupsClient() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-normal text-slate-950">Groups</h1>
-        <p className="mt-1 text-sm text-slate-600">Cari grup yang sedang join di WAHA session aktif, lalu copy atau tambahkan ke project.</p>
+        <p className="mt-1 text-sm text-slate-600">Cari grup yang sedang join di sbtconnect, lalu copy atau tambahkan ke project.</p>
       </div>
       <Card>
         <CardContent className="space-y-4 pt-5">
