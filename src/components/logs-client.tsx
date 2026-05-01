@@ -196,7 +196,7 @@ export function LogsClient() {
                   {log.level}
                 </Badge>
                 <div className="min-w-0">
-                  <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-950 [overflow-wrap:anywhere]">
+                  <p className="whitespace-pre-wrap text-sm leading-6 text-slate-950 [overflow-wrap:anywhere]">
                     {cleanLogMessage(log.message)}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">

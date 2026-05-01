@@ -90,7 +90,7 @@ export function OverviewClient() {
                   >
                     {run.status}
                   </Badge>
-                  <p className="min-w-0 whitespace-pre-wrap break-words text-sm leading-6 text-slate-500 [overflow-wrap:anywhere] md:col-span-2">
+                  <p className="min-w-0 whitespace-pre-wrap text-sm leading-6 text-slate-500 [overflow-wrap:anywhere] md:col-span-2">
                     {run.errorSummary ? cleanRunMessage(run.errorSummary) : `Selesai: ${formatDateTime(run.finishedAt)}`}
                   </p>
                 </div>
