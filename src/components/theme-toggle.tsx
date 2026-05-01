@@ -8,8 +8,7 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const stored = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const dark = stored === "dark" || (!stored && prefersDark);
+    const dark = stored === "dark";
     setIsDark(dark);
     document.documentElement.classList.toggle("dark", dark);
   }, []);
@@ -25,7 +24,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="rounded-md border border-slate-200 bg-white p-2 text-slate-500 hover:border-red-200 hover:text-red-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-red-400 transition-colors"
+      className="rounded-md border border-input bg-background p-2 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
       title={isDark ? "Mode Terang" : "Mode Gelap"}
     >
       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

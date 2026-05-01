@@ -43,18 +43,18 @@ export function LoginForm() {
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
             <div className="relative">
-              <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input id="username" name="username" className="pl-9" autoComplete="username" />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input id="password" name="password" type="password" className="pl-9" autoComplete="current-password" />
             </div>
           </div>
-          {error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+          {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{error}</p> : null}
           <Button className="w-full" disabled={loading}>
             {loading ? "Memproses..." : "Masuk"}
           </Button>

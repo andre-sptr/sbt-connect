@@ -56,9 +56,9 @@ function BarChart({ data }: BarChartProps) {
                   title={`${d.failed} gagal`}
                 />
               )}
-              {total === 0 && <div className="w-full rounded-sm bg-slate-100" style={{ height: "8px" }} />}
+              {total === 0 && <div className="w-full rounded-sm bg-muted" style={{ height: "8px" }} />}
             </div>
-            <p className="text-[10px] text-slate-400 text-center">{formatShortDate(d.date)}</p>
+            <p className="text-center text-[10px] text-muted-foreground">{formatShortDate(d.date)}</p>
           </div>
         );
       })}
@@ -84,8 +84,8 @@ export function ProjectStats({ projectId }: ProjectStatsProps) {
       .catch(() => setError("Gagal memuat statistik."));
   }, [projectId]);
 
-  if (error) return <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p>;
-  if (!data) return <p className="text-sm text-slate-500">Memuat statistik...</p>;
+  if (error) return <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{error}</p>;
+  if (!data) return <p className="text-sm text-muted-foreground">Memuat statistik...</p>;
 
   const statCards = [
     {
@@ -93,32 +93,32 @@ export function ProjectStats({ projectId }: ProjectStatsProps) {
       value: data.totalRuns,
       sub: `${data.totalRecentRuns} dalam 7 hari`,
       icon: Activity,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
+      color: "text-blue-600 dark:text-blue-300",
+      bg: "bg-blue-50 dark:bg-blue-950/40",
     },
     {
       label: "Success Rate",
       value: data.successRate !== null ? `${data.successRate}%` : "—",
       sub: "7 hari terakhir",
       icon: TrendingUp,
-      color: "text-emerald-600",
-      bg: "bg-emerald-50",
+      color: "text-emerald-600 dark:text-emerald-300",
+      bg: "bg-emerald-50 dark:bg-emerald-950/40",
     },
     {
       label: "Run Gagal",
       value: data.failedRuns,
       sub: "7 hari terakhir",
       icon: XCircle,
-      color: "text-red-600",
-      bg: "bg-red-50",
+      color: "text-red-600 dark:text-red-300",
+      bg: "bg-red-50 dark:bg-red-950/40",
     },
     {
       label: "Rata-rata Durasi",
       value: formatDuration(data.avgDurationMs),
       sub: "per run",
       icon: Clock,
-      color: "text-violet-600",
-      bg: "bg-violet-50",
+      color: "text-violet-600 dark:text-violet-300",
+      bg: "bg-violet-50 dark:bg-violet-950/40",
     },
   ];
 
@@ -129,9 +129,9 @@ export function ProjectStats({ projectId }: ProjectStatsProps) {
           <Card key={card.label}>
             <CardContent className="flex items-center justify-between pt-5">
               <div>
-                <p className="text-sm text-slate-500">{card.label}</p>
-                <p className="mt-2 text-xl font-semibold text-slate-950">{card.value}</p>
-                <p className="mt-0.5 text-xs text-slate-400">{card.sub}</p>
+                <p className="text-sm text-muted-foreground">{card.label}</p>
+                <p className="mt-2 text-xl font-semibold text-foreground">{card.value}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{card.sub}</p>
               </div>
               <div className={`rounded-md p-3 ${card.bg} ${card.color}`}>
                 <card.icon className="h-5 w-5" />
@@ -144,13 +144,13 @@ export function ProjectStats({ projectId }: ProjectStatsProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
             Runs per Hari (7 Hari Terakhir)
           </CardTitle>
         </CardHeader>
         <CardContent>
           <BarChart data={data.dailyRuns} />
-          <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
+          <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-500" /> Sukses</span>
             <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-red-500" /> Gagal</span>
           </div>

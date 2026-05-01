@@ -38,8 +38,8 @@ export function OverviewClient() {
     return () => window.clearInterval(timer);
   }, []);
 
-  if (error) return <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p>;
-  if (!data) return <p className="text-sm text-slate-500">Memuat dashboard...</p>;
+  if (error) return <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{error}</p>;
+  if (!data) return <p className="text-sm text-muted-foreground">Memuat dashboard...</p>;
 
   const cards = [
     { label: "Total Projek", value: data.totalProjects, icon: FolderKanban },
@@ -51,18 +51,18 @@ export function OverviewClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-normal text-slate-950">Overview</h1>
-        <p className="mt-1 text-sm text-slate-600">Status scheduler, projek aktif, dan riwayat pengiriman terbaru.</p>
+        <h1 className="text-2xl font-semibold tracking-normal text-foreground">Overview</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Status scheduler, projek aktif, dan riwayat pengiriman terbaru.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
           <Card key={card.label}>
             <CardContent className="flex items-center justify-between pt-5">
               <div>
-                <p className="text-sm text-slate-500">{card.label}</p>
-                <p className="mt-2 text-xl font-semibold text-slate-950">{card.value}</p>
+                <p className="text-sm text-muted-foreground">{card.label}</p>
+                <p className="mt-2 text-xl font-semibold text-foreground">{card.value}</p>
               </div>
-              <div className="rounded-md bg-red-50 p-3 text-red-700">
+              <div className="rounded-md bg-red-50 p-3 text-red-700 dark:bg-red-950/40 dark:text-red-300">
                 <card.icon className="h-5 w-5" />
               </div>
             </CardContent>
@@ -76,13 +76,13 @@ export function OverviewClient() {
         <CardContent>
           <div className="divide-y rounded-md border">
             {data.latestRuns.length === 0 ? (
-              <p className="p-4 text-sm text-slate-500">Belum ada run.</p>
+              <p className="p-4 text-sm text-muted-foreground">Belum ada run.</p>
             ) : (
               data.latestRuns.map((run) => (
                 <div key={run.id} className="grid items-start gap-3 p-4 md:grid-cols-[minmax(0,1fr)_120px]">
                   <div className="min-w-0">
-                    <p className="font-medium text-slate-900">{run.project?.name || `Project #${run.projectId}`}</p>
-                    <p className="text-sm text-slate-500">{run.action} · {formatDateTime(run.startedAt)}</p>
+                    <p className="font-medium text-foreground">{run.project?.name || `Project #${run.projectId}`}</p>
+                    <p className="text-sm text-muted-foreground">{run.action} · {formatDateTime(run.startedAt)}</p>
                   </div>
                   <Badge
                     className="w-fit justify-self-start capitalize md:justify-self-end"
@@ -90,7 +90,7 @@ export function OverviewClient() {
                   >
                     {run.status}
                   </Badge>
-                  <p className="min-w-0 whitespace-pre-wrap text-sm leading-6 text-slate-500 [overflow-wrap:anywhere] md:col-span-2">
+                  <p className="min-w-0 whitespace-pre-wrap text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere] md:col-span-2">
                     {run.errorSummary ? cleanRunMessage(run.errorSummary) : `Selesai: ${formatDateTime(run.finishedAt)}`}
                   </p>
                 </div>

@@ -120,8 +120,8 @@ export function LogsClient() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-slate-950">Logs</h1>
-          <p className="mt-1 text-sm text-slate-600">Riwayat proses bot dan scheduler.</p>
+          <h1 className="text-2xl font-semibold tracking-normal text-foreground">Logs</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Riwayat proses bot dan scheduler.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleExport} title="Export ke CSV">
@@ -138,7 +138,7 @@ export function LogsClient() {
         <CardContent className="space-y-4 pt-5">
           {/* Filter baris 1: search keyword */}
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               className="pl-9"
               placeholder="Cari pesan log..."
@@ -151,7 +151,7 @@ export function LogsClient() {
             <select
               value={projectId}
               onChange={(event) => updateProjectId(event.target.value)}
-              className="h-10 rounded-md border bg-white px-3 text-sm"
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
             >
               <option value="">Semua project</option>
               {projects.map((project) => (
@@ -163,7 +163,7 @@ export function LogsClient() {
             <select
               value={level}
               onChange={(event) => updateLevel(event.target.value)}
-              className="h-10 rounded-md border bg-white px-3 text-sm"
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
             >
               <option value="">Semua level</option>
               <option value="info">Info</option>
@@ -174,7 +174,7 @@ export function LogsClient() {
             <select
               value={days}
               onChange={(event) => updateDays(event.target.value)}
-              className="h-10 rounded-md border bg-white px-3 text-sm"
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
             >
               {DAY_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -185,21 +185,21 @@ export function LogsClient() {
           </div>
           {/* Log list */}
           <div className="divide-y rounded-md border">
-            {loading ? <p className="p-4 text-sm text-slate-500">Memuat log...</p> : null}
+            {loading ? <p className="p-4 text-sm text-muted-foreground">Memuat log...</p> : null}
             {!loading && logs.length === 0 ? (
-              <p className="p-4 text-sm text-slate-500">Tidak ada log yang cocok dengan filter.</p>
+              <p className="p-4 text-sm text-muted-foreground">Tidak ada log yang cocok dengan filter.</p>
             ) : null}
             {logs.map((log) => (
               <div key={log.id} className="grid items-start gap-3 p-4 lg:grid-cols-[180px_96px_minmax(0,1fr)]">
-                <p className="whitespace-nowrap text-sm text-slate-500">{formatDateTime(log.createdAt)}</p>
+                <p className="whitespace-nowrap text-sm text-muted-foreground">{formatDateTime(log.createdAt)}</p>
                 <Badge className="w-fit justify-self-start capitalize" variant={levelVariant(log.level)}>
                   {log.level}
                 </Badge>
                 <div className="min-w-0">
-                  <p className="whitespace-pre-wrap text-sm leading-6 text-slate-950 [overflow-wrap:anywhere]">
+                  <p className="whitespace-pre-wrap text-sm leading-6 text-foreground [overflow-wrap:anywhere]">
                     {cleanLogMessage(log.message)}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {log.project?.name || "System"} {log.run ? `· ${log.run.action}/${log.run.status}` : ""}
                   </p>
                 </div>
@@ -208,7 +208,7 @@ export function LogsClient() {
           </div>
           {pagination.total > 0 && (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Menampilkan {(pagination.page - 1) * pagination.pageSize + 1}-
                 {Math.min(pagination.page * pagination.pageSize, pagination.total)} dari {pagination.total} entri
               </p>
@@ -222,7 +222,7 @@ export function LogsClient() {
                 >
                   Previous
                 </Button>
-                <span className="min-w-24 text-center text-xs text-slate-500">
+                <span className="min-w-24 text-center text-xs text-muted-foreground">
                   Halaman {pagination.page} / {pagination.totalPages}
                 </span>
                 <Button

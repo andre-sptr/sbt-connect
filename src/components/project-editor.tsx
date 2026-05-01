@@ -191,22 +191,22 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
     );
   }
 
-  if (loading) return <p className="text-sm text-slate-500">Memuat project...</p>;
+  if (loading) return <p className="text-sm text-muted-foreground">Memuat project...</p>;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-slate-950">
+          <h1 className="text-2xl font-semibold tracking-normal text-foreground">
             {mode === "create" ? "Buat Projek Bot" : state.name}
           </h1>
-          <p className="mt-1 text-sm text-slate-600">Atur sheet, grup tujuan, caption, dan jadwal otomatis.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Atur sheet, grup tujuan, caption, dan jadwal otomatis.</p>
         </div>
         <div className="flex items-center gap-2">
           {mode === "edit" && projectId && (
             <Link
               href={`/dashboard/projects/${projectId}/stats`}
-              className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:border-red-200 hover:text-red-700 transition-colors"
+              className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
             >
               <BarChart3 className="h-4 w-4" />
               Statistik
@@ -218,8 +218,8 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
           </Button>
         </div>
       </div>
-      {message ? <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{message}</p> : null}
-      {error ? <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
+      {message ? <p className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-200">{message}</p> : null}
+      {error ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{error}</p> : null}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="space-y-6">
@@ -227,7 +227,7 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <MessageSquareText className="h-5 w-5 text-red-700" />
+                <MessageSquareText className="h-5 w-5 text-primary" />
                 Tujuan WA
               </CardTitle>
             </CardHeader>
@@ -258,10 +258,10 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
                   })}
                 </div>
                 {hasDuplicateGroupIds && (
-                  <p className="text-xs text-red-600">Group ID tujuan tidak boleh duplikat: {duplicateGroupIds.join(", ")}.</p>
+                  <p className="text-xs text-red-600 dark:text-red-300">Group ID tujuan tidak boleh duplikat: {duplicateGroupIds.join(", ")}.</p>
                 )}
                 {groupIds.some((id) => !id.endsWith("@g.us")) && (
-                  <p className="text-xs text-amber-600">⚠ Beberapa Group ID tidak valid (harus diakhiri @g.us).</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-300">⚠ Beberapa Group ID tidak valid (harus diakhiri @g.us).</p>
                 )}
               </div>
             </CardContent>
@@ -271,7 +271,7 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Table2 className="h-5 w-5 text-red-700" />
+                <Table2 className="h-5 w-5 text-primary" />
                 Spreadsheet
               </CardTitle>
             </CardHeader>
@@ -298,7 +298,7 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label>Preview URL</Label>
-                <div className="break-all rounded-md border bg-slate-50 p-3 text-xs text-slate-600">{previewUrl || "URL belum valid."}</div>
+                <div className="break-all rounded-md border bg-muted p-3 text-xs text-muted-foreground">{previewUrl || "URL belum valid."}</div>
               </div>
             </CardContent>
           </Card>
@@ -307,7 +307,7 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CalendarClock className="h-5 w-5 text-red-700" />
+                <CalendarClock className="h-5 w-5 text-primary" />
                 Pesan &amp; Jadwal
               </CardTitle>
             </CardHeader>
@@ -323,7 +323,7 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
                   placeholder={"*Reporting {projectName}*\nTanggal: {datetime}"}
                   rows={4}
                 />
-                <p className="text-xs text-slate-500">Placeholder: {"{date}"}, {"{datetime}"}, {"{projectName}"}</p>
+                <p className="text-xs text-muted-foreground">Placeholder: {"{date}"}, {"{datetime}"}, {"{projectName}"}</p>
               </div>
 
               <div className="space-y-2">
@@ -345,7 +345,7 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
                   <button
                     type="button"
                     onClick={() => update("enabled", !state.enabled)}
-                    className="flex h-10 w-full items-center justify-between rounded-md border bg-white px-3 text-sm"
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-sm text-foreground"
                   >
                     <span>{state.enabled ? "Aktif" : "Paused"}</span>
                     <Badge variant={state.enabled ? "success" : "muted"}>{state.enabled ? "ON" : "OFF"}</Badge>
@@ -363,7 +363,7 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
                     value={state.maxRetries}
                     onChange={(event) => update("maxRetries", Number(event.target.value))}
                   />
-                  <p className="text-xs text-slate-500">0 = tidak retry. Maks 5 kali.</p>
+                  <p className="text-xs text-muted-foreground">0 = tidak retry. Maks 5 kali.</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Jeda Retry (menit)</Label>
@@ -375,7 +375,7 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
                     onChange={(event) => update("retryDelayMinutes", Number(event.target.value))}
                     disabled={state.maxRetries === 0}
                   />
-                  <p className="text-xs text-slate-500">Waktu tunggu antar percobaan ulang.</p>
+                  <p className="text-xs text-muted-foreground">Waktu tunggu antar percobaan ulang.</p>
                 </div>
               </div>
             </CardContent>
@@ -390,7 +390,7 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
             </CardHeader>
             <CardContent className="space-y-3">
               {mode === "create" ? (
-                <p className="text-sm text-slate-500">Simpan project dulu untuk menjalankan test.</p>
+                <p className="text-sm text-muted-foreground">Simpan project dulu untuk menjalankan test.</p>
               ) : (
                 <>
                   <Button variant="outline" className="w-full justify-start" disabled={!!running} onClick={() => run("screenshot")}>
@@ -426,15 +426,15 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
               <CardContent>
                 <div className="max-h-64 overflow-y-auto space-y-1 font-mono text-xs">
                   {progressLogs.map((log) => (
-                    <div key={log.id} className={`flex gap-2 ${log.level === "error" ? "text-red-600" : log.level === "success" ? "text-emerald-600" : log.level === "warning" ? "text-amber-600" : "text-slate-500"}`}>
+                    <div key={log.id} className={`flex gap-2 ${log.level === "error" ? "text-red-600 dark:text-red-300" : log.level === "success" ? "text-emerald-600 dark:text-emerald-300" : log.level === "warning" ? "text-amber-600 dark:text-amber-300" : "text-muted-foreground"}`}>
                       <span className="shrink-0 select-none">{log.level === "error" ? "✗" : log.level === "success" ? "✓" : log.level === "warning" ? "⚠" : "·"}</span>
                       <span>{log.message}</span>
                     </div>
                   ))}
-                  {running && <div className="text-slate-400 animate-pulse">▌</div>}
+                  {running && <div className="animate-pulse text-muted-foreground">▌</div>}
                 </div>
                 {runDone?.errorSummary && (
-                  <p className="mt-2 rounded-md bg-red-50 p-2 text-xs text-red-700">{runDone.errorSummary}</p>
+                  <p className="mt-2 rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{runDone.errorSummary}</p>
                 )}
               </CardContent>
             </Card>
@@ -470,13 +470,13 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-red-700" />
+                    <Globe className="h-4 w-4 text-primary" />
                     Preview Sheet
                   </CardTitle>
                   <button
                     type="button"
                     onClick={() => setShowIframe((v) => !v)}
-                    className="text-xs text-red-700 hover:underline"
+                    className="text-xs text-primary hover:underline"
                   >
                     {showIframe ? "Sembunyikan" : "Tampilkan"}
                   </button>
@@ -490,7 +490,7 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
                     sandbox="allow-same-origin allow-scripts"
                     title="Preview Google Sheet"
                   />
-                  <p className="mt-2 text-xs text-slate-400">Preview instan tanpa screenshot. Tampilan mungkin berbeda dengan hasil screenshot.</p>
+                  <p className="mt-2 text-xs text-muted-foreground">Preview instan tanpa screenshot. Tampilan mungkin berbeda dengan hasil screenshot.</p>
                 </CardContent>
               )}
             </Card>
@@ -501,15 +501,15 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Link2 className="h-4 w-4 text-red-700" />
+                  <Link2 className="h-4 w-4 text-primary" />
                   Halaman Publik
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {publicToken ? (
                   <>
-                    <p className="text-xs text-slate-500">URL halaman status publik:</p>
-                    <div className="break-all rounded-md bg-slate-50 p-2 text-xs font-mono text-slate-700">
+                    <p className="text-xs text-muted-foreground">URL halaman status publik:</p>
+                    <div className="break-all rounded-md bg-muted p-2 text-xs font-mono text-foreground">
                       {typeof window !== "undefined" ? `${window.location.origin}/status/${publicToken}` : `/status/${publicToken}`}
                     </div>
                     <div className="flex gap-2">
@@ -527,7 +527,7 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
                       <Button
                         variant="outline"
                         size="icon"
-                        className="text-red-600 hover:text-red-700"
+                        className="text-red-600 hover:text-red-700 dark:text-red-300 dark:hover:text-red-200"
                         disabled={tokenLoading}
                         title="Cabut akses publik"
                         onClick={async () => {
@@ -543,7 +543,7 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
                   </>
                 ) : (
                   <>
-                    <p className="text-xs text-slate-500">Buat URL publik untuk stakeholder tanpa perlu login.</p>
+                    <p className="text-xs text-muted-foreground">Buat URL publik untuk stakeholder tanpa perlu login.</p>
                     <Button
                       variant="outline"
                       className="w-full"

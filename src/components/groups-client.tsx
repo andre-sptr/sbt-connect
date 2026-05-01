@@ -122,20 +122,20 @@ export function GroupsClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-normal text-slate-950">Groups</h1>
-        <p className="mt-1 text-sm text-slate-600">Cari grup yang sedang join di sbtconnect, lalu copy atau tambahkan ke project.</p>
+        <h1 className="text-2xl font-semibold tracking-normal text-foreground">Groups</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Cari grup yang sedang join di sbtconnect, lalu copy atau tambahkan ke project.</p>
       </div>
       <Card>
         <CardContent className="space-y-4 pt-5">
           <div className="grid gap-3 lg:grid-cols-[1fr_280px_auto]">
             <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input className="pl-9" value={search} onChange={(event) => updateSearch(event.target.value)} placeholder="Cari nama atau ID grup..." />
             </div>
             <select
               value={selectedProject}
               onChange={(event) => setSelectedProject(event.target.value)}
-              className="h-10 rounded-md border bg-white px-3 text-sm"
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
             >
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>{project.name}</option>
@@ -146,15 +146,15 @@ export function GroupsClient() {
               Refresh
             </Button>
           </div>
-          {message ? <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{message}</p> : null}
-          {error ? <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
+          {message ? <p className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-200">{message}</p> : null}
+          {error ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{error}</p> : null}
           <div className="divide-y rounded-md border">
-            {loading ? <p className="p-4 text-sm text-slate-500">Memuat grup...</p> : null}
-            {!loading && groups.length === 0 ? <p className="p-4 text-sm text-slate-500">Belum ada cache grup. Klik Refresh untuk mengambil dari WAHA dan menyimpannya ke database.</p> : null}
+            {loading ? <p className="p-4 text-sm text-muted-foreground">Memuat grup...</p> : null}
+            {!loading && groups.length === 0 ? <p className="p-4 text-sm text-muted-foreground">Belum ada cache grup. Klik Refresh untuk mengambil dari WAHA dan menyimpannya ke database.</p> : null}
             {groups.map((group) => (
               <div key={group.id} className="grid gap-3 p-4 md:grid-cols-[1fr_auto] md:items-center">
                 <div>
-                  <p className="font-medium text-slate-950">{group.name}</p>
+                  <p className="font-medium text-foreground">{group.name}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Badge>{group.id}</Badge>
                     <Badge variant="success">Group</Badge>
@@ -175,7 +175,7 @@ export function GroupsClient() {
           </div>
           {pagination.total > 0 && (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Menampilkan {(pagination.page - 1) * pagination.pageSize + 1}-
                 {Math.min(pagination.page * pagination.pageSize, pagination.total)} dari {pagination.total} grup
               </p>
@@ -189,7 +189,7 @@ export function GroupsClient() {
                 >
                   Previous
                 </Button>
-                <span className="min-w-24 text-center text-xs text-slate-500">
+                <span className="min-w-24 text-center text-xs text-muted-foreground">
                   Halaman {pagination.page} / {pagination.totalPages}
                 </span>
                 <Button

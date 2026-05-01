@@ -91,8 +91,8 @@ export function ProjectsClient() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-slate-950">Projects</h1>
-          <p className="mt-1 text-sm text-slate-600">{activeCount} projek aktif dari {pagination.total || projects.length} projek.</p>
+          <h1 className="text-2xl font-semibold tracking-normal text-foreground">Projects</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{activeCount} projek aktif dari {pagination.total || projects.length} projek.</p>
         </div>
         <Button asChild>
           <Link href="/dashboard/projects/new">
@@ -104,34 +104,34 @@ export function ProjectsClient() {
       <Card>
         <CardContent className="pt-5">
           <div className="relative mb-4">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input className="pl-9" placeholder="Cari nama, URL, atau GID..." value={search} onChange={(event) => updateSearch(event.target.value)} />
           </div>
-          {error ? <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
+          {error ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{error}</p> : null}
           <div className="overflow-hidden rounded-md border">
-            <div className="table-grid bg-slate-50 px-4 py-3 text-xs font-semibold uppercase text-slate-500">
+            <div className="table-grid bg-muted px-4 py-3 text-xs font-semibold uppercase text-muted-foreground">
               <span>Project</span>
               <span>Schedule</span>
               <span>Status</span>
               <span>Actions</span>
             </div>
-            {loading ? <p className="p-4 text-sm text-slate-500">Memuat projek...</p> : null}
-            {!loading && projects.length === 0 ? <p className="p-4 text-sm text-slate-500">Belum ada projek.</p> : null}
+            {loading ? <p className="p-4 text-sm text-muted-foreground">Memuat projek...</p> : null}
+            {!loading && projects.length === 0 ? <p className="p-4 text-sm text-muted-foreground">Belum ada projek.</p> : null}
             {projects.map((project) => (
               <div key={project.id} className="table-grid gap-3 border-t px-4 py-4 text-sm">
                 <div>
-                  <Link className="font-semibold text-slate-950 hover:text-red-700" href={`/dashboard/projects/${project.id}`}>
+                  <Link className="font-semibold text-foreground hover:text-primary" href={`/dashboard/projects/${project.id}`}>
                     {project.name}
                   </Link>
-                  <p className="mt-1 text-slate-500">{project.groupIds.length} grup · {project.cellRange}</p>
+                  <p className="mt-1 text-muted-foreground">{project.groupIds.length} grup · {project.cellRange}</p>
                 </div>
                 <div>
-                  <p className="font-medium text-slate-800">{project.cronExpression}</p>
-                  <p className="mt-1 text-slate-500">Next: {formatDateTime(project.nextRunAt)}</p>
+                  <p className="font-medium text-foreground">{project.cronExpression}</p>
+                  <p className="mt-1 text-muted-foreground">Next: {formatDateTime(project.nextRunAt)}</p>
                 </div>
                 <div>
                   <Badge variant={project.enabled ? "success" : "muted"}>{project.enabled ? "Aktif" : "Paused"}</Badge>
-                  <p className="mt-2 text-slate-500">Last: {formatDateTime(project.lastRunAt)}</p>
+                  <p className="mt-2 text-muted-foreground">Last: {formatDateTime(project.lastRunAt)}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="icon" title="Pause/resume" onClick={() => toggle(project)}>
@@ -149,7 +149,7 @@ export function ProjectsClient() {
           </div>
           {pagination.total > 0 && (
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Menampilkan {(pagination.page - 1) * pagination.pageSize + 1}-
                 {Math.min(pagination.page * pagination.pageSize, pagination.total)} dari {pagination.total} project
               </p>
@@ -163,7 +163,7 @@ export function ProjectsClient() {
                 >
                   Previous
                 </Button>
-                <span className="min-w-24 text-center text-xs text-slate-500">
+                <span className="min-w-24 text-center text-xs text-muted-foreground">
                   Halaman {pagination.page} / {pagination.totalPages}
                 </span>
                 <Button

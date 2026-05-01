@@ -85,7 +85,7 @@ export function CronBuilder({ value, onChange }: CronBuilderProps) {
             className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
               freq === f
                 ? "border-red-700 bg-red-700 text-white"
-                : "border-slate-200 bg-white text-slate-600 hover:border-red-200 hover:text-red-700"
+                : "border-input bg-background text-muted-foreground hover:border-primary/40 hover:text-primary"
             }`}
           >
             {{ daily: "Harian", weekly: "Mingguan", monthly: "Bulanan", custom: "Custom" }[f]}
@@ -144,7 +144,7 @@ export function CronBuilder({ value, onChange }: CronBuilderProps) {
                 className={`rounded-md border px-3 py-1 text-sm font-medium transition-colors ${
                   days.includes(d.value)
                     ? "border-red-600 bg-red-600 text-white"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-red-200 hover:text-red-700"
+                    : "border-input bg-background text-muted-foreground hover:border-primary/40 hover:text-primary"
                 }`}
               >
                 {d.label}
@@ -167,7 +167,7 @@ export function CronBuilder({ value, onChange }: CronBuilderProps) {
             href="https://crontab.guru"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-red-700 hover:underline"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
           >
             <ExternalLink className="h-3 w-3" /> Cek di crontab.guru
           </a>
@@ -175,9 +175,9 @@ export function CronBuilder({ value, onChange }: CronBuilderProps) {
       )}
 
       {/* Summary */}
-      <div className="rounded-md bg-slate-50 px-3 py-2 text-sm">
-        {humanText && <p className="text-slate-600">{humanText}</p>}
-        <p className="font-mono text-xs text-slate-400 mt-0.5">{displayCron || "—"}</p>
+      <div className="rounded-md bg-muted px-3 py-2 text-sm">
+        {humanText && <p className="text-foreground">{humanText}</p>}
+        <p className="font-mono text-xs text-muted-foreground mt-0.5">{displayCron || "—"}</p>
       </div>
     </div>
   );
