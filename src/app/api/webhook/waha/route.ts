@@ -1,4 +1,5 @@
-import { handleLaporan, handleRun, handleStatus } from "@/lib/bot-commands";
+import { handleCreateProject, handleGroup, handleHelp, handleLaporan, handleRun, handleStatus } from "@/lib/bot-commands";
+import { isProjectCommandText } from "@/lib/bot-command-parser";
 
 type WahaWebhookPayload = {
   event?: string;
@@ -40,7 +41,13 @@ export async function POST(request: Request) {
   const lower = text.toLowerCase();
   const ctx = { chatId, args: "" };
 
-  if (lower === "!laporan") {
+  if (lower === "!help") {
+    handleHelp(ctx).catch(() => {});
+  } else if (lower === "!group") {
+    handleGroup(ctx).catch(() => {});
+  } else if (isProjectCommandText(text)) {
+    handleCreateProject({ chatId, args: text }).catch(() => {});
+  } else if (lower === "!laporan") {
     handleLaporan(ctx).catch(() => {});
   } else if (lower === "!status") {
     handleStatus(ctx).catch(() => {});
