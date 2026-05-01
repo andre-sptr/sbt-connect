@@ -49,9 +49,7 @@ export default async function PublicStatusPage({ params }: Props) {
     <div className="flex min-h-screen items-start justify-center bg-gradient-to-br from-slate-50 to-red-50/30 p-6 dark:from-background dark:to-red-950/10">
       <div className="mt-12 w-full max-w-xl space-y-6">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-red-700 text-2xl font-bold text-white shadow-lg">
-            S
-          </div>
+          <img src="/icon.svg" alt="SBT Connect" className="mx-auto mb-4 h-14 w-14 rounded-xl shadow-lg" />
           <h1 className="text-2xl font-bold text-foreground">{data.name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">Status halaman publik — SBT Connect</p>
           <div className="mt-3 inline-flex items-center gap-1.5">
@@ -84,7 +82,7 @@ export default async function PublicStatusPage({ params }: Props) {
           <div className="rounded-xl border bg-card p-4 shadow-sm">
             <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
-              Terakhir Run
+              Last Run
             </div>
             <p className="text-base font-semibold text-foreground">{formatDate(data.lastRunAt)}</p>
           </div>
@@ -92,7 +90,7 @@ export default async function PublicStatusPage({ params }: Props) {
           <div className="rounded-xl border bg-card p-4 shadow-sm">
             <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
-              Jadwal Berikutnya
+              Next Run
             </div>
             <p className="text-base font-semibold text-foreground">{formatDate(data.nextRunAt)}</p>
           </div>

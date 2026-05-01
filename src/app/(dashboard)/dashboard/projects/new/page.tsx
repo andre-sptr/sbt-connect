@@ -1,5 +1,7 @@
 import { ProjectEditor } from "@/components/project-editor";
 
 export default function NewProjectPage() {
-  return <ProjectEditor mode="create" />;
+  const timezone = process.env.TIMEZONE?.trim() || "Asia/Jakarta";
+
+  return <ProjectEditor mode="create" defaultTimezone={timezone} />;
 }

@@ -4,5 +4,7 @@ type Props = { params: Promise<{ id: string }> };
 
 export default async function ProjectDetailPage({ params }: Props) {
   const { id } = await params;
-  return <ProjectEditor mode="edit" projectId={Number(id)} />;
+  const timezone = process.env.TIMEZONE?.trim() || "Asia/Jakarta";
+
+  return <ProjectEditor mode="edit" projectId={Number(id)} defaultTimezone={timezone} />;
 }

@@ -28,7 +28,7 @@ function SidebarContent({ pathname, onNavigate }: { pathname: string; onNavigate
     <div className="flex h-full flex-col p-4">
       {/* Logo */}
       <div className="mb-8 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-700 font-bold text-white">S</div>
+        <img src="/icon.svg" alt="SBT Connect" className="h-10 w-10 rounded-lg" />
         <div>
         <p className="font-semibold leading-tight text-foreground">SBT Connect</p>
         <p className="text-xs text-muted-foreground">WAHA Bot Control</p>

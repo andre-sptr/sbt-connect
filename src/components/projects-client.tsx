@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Copy, Pause, Play, Plus, Search, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ type ProjectsPagination = {
 };
 
 export function ProjectsClient() {
+  const router = useRouter();
   const [projects, setProjects] = useState<ProjectDto[]>([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -118,11 +120,21 @@ export function ProjectsClient() {
             {loading ? <p className="p-4 text-sm text-muted-foreground">Memuat projek...</p> : null}
             {!loading && projects.length === 0 ? <p className="p-4 text-sm text-muted-foreground">Belum ada projek.</p> : null}
             {projects.map((project) => (
-              <div key={project.id} className="table-grid gap-3 border-t px-4 py-4 text-sm">
+              <div
+                key={project.id}
+                role="link"
+                tabIndex={0}
+                className="table-grid cursor-pointer gap-3 border-t px-4 py-4 text-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                onClick={() => router.push(`/dashboard/projects/${project.id}`)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    router.push(`/dashboard/projects/${project.id}`);
+                  }
+                }}
+              >
                 <div>
-                  <Link className="font-semibold text-foreground hover:text-primary" href={`/dashboard/projects/${project.id}`}>
-                    {project.name}
-                  </Link>
+                  <p className="font-semibold text-foreground">{project.name}</p>
                   <p className="mt-1 text-muted-foreground">{project.groupIds.length} grup · {project.cellRange}</p>
                 </div>
                 <div>
@@ -133,7 +145,11 @@ export function ProjectsClient() {
                   <Badge variant={project.enabled ? "success" : "muted"}>{project.enabled ? "Aktif" : "Paused"}</Badge>
                   <p className="mt-2 text-muted-foreground">Last: {formatDateTime(project.lastRunAt)}</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div
+                  className="flex flex-wrap gap-2"
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
+                >
                   <Button variant="outline" size="icon" title="Pause/resume" onClick={() => toggle(project)}>
                     {project.enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   </Button>

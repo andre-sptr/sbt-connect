@@ -18,23 +18,31 @@ import type { ProjectDto, RunDto } from "@/types/dashboard";
 
 type CachedGroup = { remote: string; name: string };
 
-const defaultState = {
-  name: "",
-  groupIdsText: "",
-  spreadsheetUrl: "",
-  gid: "",
-  cellRange: "",
-  caption: "",
-  cronExpression: "",
-  timezone: "Asia/Jakarta",
-  enabled: true,
-  maxRetries: 0,
-  retryDelayMinutes: 5,
+function createDefaultState(timezone: string) {
+  return {
+    name: "",
+    groupIdsText: "",
+    spreadsheetUrl: "",
+    gid: "",
+    cellRange: "",
+    caption: "",
+    cronExpression: "",
+    timezone,
+    enabled: true,
+    maxRetries: 0,
+    retryDelayMinutes: 5,
+  };
+}
+
+type ProjectEditorProps = {
+  mode: "create" | "edit";
+  projectId?: number;
+  defaultTimezone: string;
 };
 
-export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; projectId?: number }) {
+export function ProjectEditor({ mode, projectId, defaultTimezone }: ProjectEditorProps) {
   const router = useRouter();
-  const [state, setState] = useState(defaultState);
+  const [state, setState] = useState(() => createDefaultState(defaultTimezone));
   const [loading, setLoading] = useState(mode === "edit");
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState("");
@@ -336,8 +344,8 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
                   <Label>Timezone</Label>
                   <Input
                     value={state.timezone}
-                    onChange={(event) => update("timezone", event.target.value)}
                     placeholder="Asia/Jakarta"
+                    disabled
                   />
                 </div>
                 <div className="space-y-2">
