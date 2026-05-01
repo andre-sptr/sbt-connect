@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CronBuilder } from "@/components/cron-builder";
 import { CaptionTemplates } from "@/components/caption-templates";
-import { buildPublishedSheetUrl } from "@/lib/project-validation";
+import { buildPublishedSheetUrl, findDuplicateGroupIds } from "@/lib/project-validation";
 import { parseGroupIds } from "@/lib/utils";
 import type { ProjectDto, RunDto } from "@/types/dashboard";
 
@@ -88,6 +88,8 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
   }, [mode, projectId]);
 
   const groupIds = useMemo(() => parseGroupIds(state.groupIdsText), [state.groupIdsText]);
+  const duplicateGroupIds = useMemo(() => findDuplicateGroupIds(groupIds), [groupIds]);
+  const hasDuplicateGroupIds = duplicateGroupIds.length > 0;
   const previewUrl = useMemo(() => {
     try {
       return buildPublishedSheetUrl(state.spreadsheetUrl, state.gid, state.cellRange);
@@ -117,9 +119,14 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
   }
 
   async function save() {
-    setSaving(true);
     setMessage("");
     setError("");
+    if (hasDuplicateGroupIds) {
+      setError("Group ID tujuan tidak boleh duplikat.");
+      return;
+    }
+
+    setSaving(true);
     const response = await fetch(mode === "create" ? "/api/projects" : `/api/projects/${projectId}`, {
       method: mode === "create" ? "POST" : "PUT",
       headers: { "Content-Type": "application/json" },
@@ -205,7 +212,7 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
               Statistik
             </Link>
           )}
-          <Button onClick={save} disabled={saving}>
+          <Button onClick={save} disabled={saving || hasDuplicateGroupIds}>
             <Save className="h-4 w-4" />
             {saving ? "Menyimpan..." : "Simpan"}
           </Button>
@@ -241,15 +248,18 @@ export function ProjectEditor({ mode, projectId }: { mode: "create" | "edit"; pr
                   placeholder="120363xxxxxxxx@g.us"
                 />
                 <div className="flex flex-wrap gap-2">
-                  {groupIds.map((groupId) => {
+                  {groupIds.map((groupId, index) => {
                     const alias = cachedGroups.find((g) => g.remote === groupId)?.name;
                     return (
-                      <Badge key={groupId} variant={groupId.endsWith("@g.us") ? "default" : "warning"} title={groupId}>
+                      <Badge key={`${groupId}-${index}`} variant={groupId.endsWith("@g.us") ? "default" : "warning"} title={groupId}>
                         {alias ? `${alias}` : groupId}
                       </Badge>
                     );
                   })}
                 </div>
+                {hasDuplicateGroupIds && (
+                  <p className="text-xs text-red-600">Group ID tujuan tidak boleh duplikat: {duplicateGroupIds.join(", ")}.</p>
+                )}
                 {groupIds.some((id) => !id.endsWith("@g.us")) && (
                   <p className="text-xs text-amber-600">⚠ Beberapa Group ID tidak valid (harus diakhiri @g.us).</p>
                 )}

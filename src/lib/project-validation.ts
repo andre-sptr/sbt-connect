@@ -1,9 +1,28 @@
 import { z } from "zod";
 import { CronExpressionParser } from "cron-parser";
 
+export function findDuplicateGroupIds(groupIds: string[]) {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+
+  for (const groupId of groupIds) {
+    const normalized = groupId.trim();
+    if (seen.has(normalized)) {
+      duplicates.add(normalized);
+    } else {
+      seen.add(normalized);
+    }
+  }
+
+  return Array.from(duplicates);
+}
+
 export const projectSchema = z.object({
   name: z.string().trim().min(2, "Nama projek wajib diisi."),
-  groupIds: z.array(z.string().trim().min(5)).min(1, "Minimal satu group ID tujuan."),
+  groupIds: z
+    .array(z.string().trim().min(5))
+    .min(1, "Minimal satu group ID tujuan.")
+    .refine((groupIds) => findDuplicateGroupIds(groupIds).length === 0, "Group ID tujuan tidak boleh duplikat."),
   spreadsheetUrl: z.string().trim().url("URL spreadsheet tidak valid."),
   gid: z.string().trim().min(1, "GID wajib diisi."),
   cellRange: z.string().trim().regex(/^[A-Z]+[0-9]+:[A-Z]+[0-9]+$/i, "Format range contoh: A1:K22."),
