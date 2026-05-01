@@ -91,6 +91,8 @@ Isi contoh:
 ```env
 DATABASE_URL="file:../database/dashboard-bot.db"
 AUTH_SECRET="ganti-dengan-hasil-openssl"
+USERNAME="ganti-dengan-username-login"
+PASSWORD="ganti-dengan-password-login-kuat"
 WAHA_URL="https://waha.domain-anda.com"
 WAHA_SESSION="default"
 WAHA_API_KEY="ganti-dengan-api-key-waha"
@@ -220,11 +222,11 @@ Buka:
 https://bot.domain-anda.com
 ```
 
-Login default aplikasi saat ini:
+Login aplikasi memakai nilai dari `.env`:
 
 ```text
-Username: sbtconnect
-Password: digital2045
+Username: USERNAME
+Password: PASSWORD
 ```
 
 ## 7. Menjalankan WAHA di VPS yang sama

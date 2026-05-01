@@ -1,7 +1,19 @@
 export const staticLogin = {
-  username: "sbtconnect",
-  password: "digital2045",
+  get username() {
+    return getRequiredEnv("USERNAME");
+  },
+  get password() {
+    return getRequiredEnv("PASSWORD");
+  },
 };
+
+function getRequiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} must be configured server-side.`);
+  }
+  return value;
+}
 
 export function getWahaConfig() {
   const url = process.env.WAHA_URL;
