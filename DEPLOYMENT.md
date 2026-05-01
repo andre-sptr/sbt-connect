@@ -260,7 +260,120 @@ curl http://127.0.0.1:3001/api/sessions
 
 Untuk akses dashboard/API WAHA dari browser, lebih aman buat subdomain terpisah seperti `waha.domain-anda.com` dan lindungi dengan firewall, Basic Auth, atau pembatasan IP.
 
-## 8. Update aplikasi
+## 8. Menggunakan bot command WhatsApp
+
+Bot command dipakai dengan mengirim pesan WhatsApp ke akun WAHA yang terhubung. Pesan bisa dikirim dari chat pribadi atau grup, selama WAHA menerima event pesan tersebut dan webhook mengarah ke aplikasi.
+
+### Aktifkan webhook WAHA
+
+Set webhook WAHA ke endpoint aplikasi:
+
+```text
+https://bot.domain-anda.com/api/webhook/waha
+```
+
+Jika WAHA berjalan di VPS yang sama dan hanya diakses dari server, endpoint aplikasi tetap harus memakai domain publik aplikasi, bukan `127.0.0.1`, karena WAHA perlu memanggil route Next.js tersebut.
+
+Di dashboard atau konfigurasi WAHA, pastikan:
+
+- Session yang dipakai sama dengan `WAHA_SESSION` di `.env`.
+- Webhook URL mengarah ke `/api/webhook/waha`.
+- Event pesan masuk atau `message` aktif.
+- `WAHA_API_KEY` di aplikasi sama dengan API key WAHA.
+
+Setelah mengubah konfigurasi webhook atau `.env`, restart aplikasi:
+
+```bash
+pm2 restart dashboard-bot
+```
+
+### Daftar command
+
+Command bersifat case-insensitive. Pesan yang bukan command dikenal akan diabaikan.
+
+| Command | Fungsi |
+| --- | --- |
+| `!status` | Menampilkan daftar project aktif dan jadwal berikutnya. |
+| `!laporan` | Menjalankan project aktif dengan jadwal terdekat berikutnya. |
+| `!run nama-project` | Menjalankan project berdasarkan nama. Nama boleh exact atau sebagian nama project. |
+
+Contoh:
+
+```text
+!status
+!laporan
+!run Reporting Harian
+!run reporting
+```
+
+Jika `!run` dikirim tanpa nama project, bot akan membalas bahwa nama project harus disertakan.
+
+### Cara memakai dari WhatsApp
+
+1. Pastikan session WAHA sudah tersambung ke WhatsApp.
+2. Pastikan aplikasi `dashboard-bot` online di PM2.
+3. Pastikan minimal ada satu project aktif di dashboard.
+4. Kirim `!status` ke nomor WhatsApp yang dipakai WAHA.
+5. Jika ingin menjalankan project tertentu, kirim `!run nama-project`.
+6. Jika ingin menjalankan laporan terdekat, kirim `!laporan`.
+
+Bot akan membalas status proses di chat yang sama. Untuk `!run` dan `!laporan`, bot akan mengirim balasan awal saat proses dimulai, lalu balasan sukses atau gagal setelah proses selesai.
+
+### Catatan perilaku
+
+- Command dari pesan yang dikirim oleh bot sendiri akan diabaikan.
+- `!run nama-project` mencari project berdasarkan nama yang mengandung teks tersebut. Jika ada beberapa nama mirip, project pertama yang ditemukan database akan dijalankan.
+- `!laporan` hanya memilih project yang `enabled` dan memiliki jadwal paling dekat berdasarkan `nextRunAt`.
+- Jika proses gagal, bot membalas ringkasan error. Detail lengkap tetap dicek dari log aplikasi.
+
+### Tes webhook command
+
+Cek log aplikasi sambil mengirim command dari WhatsApp:
+
+```bash
+pm2 logs dashboard-bot
+```
+
+Jika ingin mengetes route webhook langsung dari server, gunakan payload contoh berikut:
+
+```bash
+curl -X POST https://bot.domain-anda.com/api/webhook/waha \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "message",
+    "payload": {
+      "body": "!status",
+      "from": "6281234567890@c.us",
+      "id": {
+        "remote": "6281234567890@c.us",
+        "fromMe": false
+      }
+    }
+  }'
+```
+
+Hasil route yang benar:
+
+```json
+{"ok":true}
+```
+
+Jika hasilnya `{"ok":true,"skipped":true}`, berarti payload bukan command yang dikenal, event bukan `message`, pesan kosong, atau dianggap dikirim oleh bot sendiri.
+
+### Troubleshooting command
+
+Jika bot tidak membalas:
+
+- Pastikan webhook WAHA benar: `https://bot.domain-anda.com/api/webhook/waha`.
+- Pastikan domain aplikasi bisa diakses dari server WAHA.
+- Pastikan session WAHA tersambung dan menerima pesan masuk.
+- Pastikan `.env` berisi `WAHA_URL`, `WAHA_SESSION`, dan `WAHA_API_KEY` yang benar.
+- Cek `pm2 logs dashboard-bot` saat command dikirim.
+- Coba command sederhana `!status` sebelum mengetes `!run` atau `!laporan`.
+
+Jika `!run nama-project` tidak menemukan project, cek nama project di dashboard dan coba pakai nama yang lebih spesifik.
+
+## 9. Update aplikasi
 
 Jika memakai Git:
 
@@ -380,7 +493,7 @@ npm run build
 pm2 restart dashboard-bot
 ```
 
-## 9. Backup
+## 10. Backup
 
 Backup minimal:
 
@@ -397,7 +510,7 @@ cd /www/wwwroot
 tar -czf dashboard-bot-backup-$(date +%F).tar.gz dashboard-bot/.env dashboard-bot/database dashboard-bot/storage
 ```
 
-## 10. Troubleshooting
+## 11. Troubleshooting
 
 ### Build gagal pada Prisma
 
@@ -514,7 +627,7 @@ https://bot.domain-anda.com/dashboard
 
 Pastikan timezone proyek adalah `Asia/Jakarta` atau timezone lain yang valid.
 
-## 11. Checklist selesai deploy
+## 12. Checklist selesai deploy
 
 - `.env` production sudah dibuat.
 - `npm ci` berhasil.
