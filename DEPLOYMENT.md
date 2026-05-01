@@ -272,6 +272,101 @@ npm run build
 pm2 restart dashboard-bot
 ```
 
+### Update dari local ke VPS
+
+Gunakan cara ini jika perubahan program dibuat di komputer local, lalu ingin dikirim ke VPS tanpa `git pull`.
+
+Sebelum upload, pastikan perubahan di local sudah dites:
+
+```bash
+npm ci
+npx prisma generate
+npm run build
+```
+
+Jangan kirim folder/file runtime local berikut ke VPS:
+
+```text
+node_modules
+.next
+.env
+.env.local
+database
+storage
+```
+
+Folder `database` dan `storage` di VPS berisi data production, jadi jangan ditimpa dari local.
+
+#### Opsi A: Upload lewat aaPanel File Manager
+
+1. Zip isi proyek dari komputer local.
+2. Pastikan zip tidak berisi `node_modules`, `.next`, `.env`, `.env.local`, `database`, dan `storage`.
+3. Upload zip ke `/www/wwwroot/dashboard-bot`.
+4. Extract zip dan overwrite file program.
+5. Jangan overwrite file `.env`, folder `database`, dan folder `storage` production.
+
+Setelah upload selesai, masuk SSH ke VPS dan jalankan:
+
+```bash
+cd /www/wwwroot/dashboard-bot
+npm ci
+npx prisma generate
+npx prisma db push
+npm run build
+pm2 restart dashboard-bot
+pm2 logs dashboard-bot
+```
+
+#### Opsi B: Upload dari terminal local dengan rsync
+
+Jalankan dari folder proyek di komputer local:
+
+```bash
+rsync -avz --delete \
+  --exclude node_modules \
+  --exclude .next \
+  --exclude .env \
+  --exclude .env.local \
+  --exclude database \
+  --exclude storage \
+  ./ root@IP_VPS_ANDA:/www/wwwroot/dashboard-bot/
+```
+
+Ganti `root@IP_VPS_ANDA` sesuai user dan IP VPS Anda.
+
+Setelah upload selesai, masuk SSH ke VPS:
+
+```bash
+ssh root@IP_VPS_ANDA
+```
+
+Lalu jalankan:
+
+```bash
+cd /www/wwwroot/dashboard-bot
+npm ci
+npx prisma generate
+npx prisma db push
+npm run build
+pm2 restart dashboard-bot
+pm2 logs dashboard-bot
+```
+
+Jika ada perubahan struktur database Prisma, perintah `npx prisma db push` akan menerapkan perubahan schema ke SQLite production. Backup database sebelum update jika perubahan schema cukup besar.
+
+Setelah restart, cek aplikasi:
+
+```bash
+pm2 status
+curl http://127.0.0.1:3000
+```
+
+Lalu buka domain production:
+
+```text
+https://bot.domain-anda.com
+```
+
 Jika upload manual dari aaPanel, upload file baru lalu jalankan:
 
 ```bash
