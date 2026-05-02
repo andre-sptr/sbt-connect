@@ -56,7 +56,10 @@ export async function runPythonJob(jobId: number, source: PythonRunSource = "man
     await new Promise<void>((resolve, reject) => {
       const child = spawn(pythonExecutable, [job.storedPath], {
         cwd,
-        env: pythonEnv,
+        env: {
+          ...pythonEnv,
+          PYTHONIOENCODING: "utf-8",
+        },
         shell: false,
         windowsHide: true,
       });
