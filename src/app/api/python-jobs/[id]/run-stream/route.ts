@@ -1,0 +1,105 @@
+import { requireApiSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+type Context = { params: Promise<{ id: string }> };
+
+export async function GET(request: Request, context: Context) {
+  const unauthorized = await requireApiSession();
+  if (unauthorized) return unauthorized;
+
+  const { id } = await context.params;
+  const jobId = parseInt(id, 10);
+  if (!Number.isInteger(jobId)) {
+    return new Response("ID tidak valid.", { status: 400 });
+  }
+
+  const run = await prisma.pythonRun.findFirst({
+    where: { pythonJobId: jobId, status: "running" },
+    orderBy: { startedAt: "desc" },
+  });
+
+  const encoder = new TextEncoder();
+  let lastLogId = 0;
+  let closed = false;
+
+  request.signal.addEventListener("abort", () => {
+    closed = true;
+  });
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      if (!run) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "no-run" })}\n\n`));
+        controller.close();
+        return;
+      }
+
+      controller.enqueue(
+        encoder.encode(`data: ${JSON.stringify({ type: "run-started", runId: run.id, source: run.source })}\n\n`)
+      );
+
+      const interval = setInterval(async () => {
+        if (closed) {
+          clearInterval(interval);
+          try {
+            controller.close();
+          } catch {}
+          return;
+        }
+
+        try {
+          const logs = await prisma.pythonJobLog.findMany({
+            where: {
+              pythonRunId: run.id,
+              id: { gt: lastLogId },
+            },
+            orderBy: { id: "asc" },
+            take: 20,
+          });
+
+          for (const log of logs) {
+            lastLogId = log.id;
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({
+                  type: "log",
+                  id: log.id,
+                  level: log.level,
+                  stream: log.stream,
+                  message: log.message,
+                  createdAt: log.createdAt,
+                })}\n\n`
+              )
+            );
+          }
+
+          const updated = await prisma.pythonRun.findUnique({ where: { id: run.id } });
+          if (updated && updated.status !== "running") {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ type: "run-done", status: updated.status, errorSummary: updated.errorSummary })}\n\n`
+              )
+            );
+            clearInterval(interval);
+            try {
+              controller.close();
+            } catch {}
+          }
+        } catch {
+          clearInterval(interval);
+          try {
+            controller.close();
+          } catch {}
+        }
+      }, 500);
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+}

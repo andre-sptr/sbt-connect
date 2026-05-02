@@ -41,3 +41,44 @@ export type LogDto = {
   project?: { name: string } | null;
   run?: { status: string; action: string } | null;
 };
+
+export type PythonJobDto = {
+  id: number;
+  name: string;
+  originalFilename: string;
+  cronExpression: string;
+  timezone: string;
+  enabled: boolean;
+  timeoutSeconds: number;
+  lastRunAt: string | null;
+  nextRunAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PythonRunDto = {
+  id: number;
+  pythonJobId: number;
+  source: string;
+  status: string;
+  startedAt: string;
+  finishedAt: string | null;
+  exitCode: number | null;
+  timedOut: boolean;
+  errorSummary: string | null;
+};
+
+export type PythonJobLogDto = {
+  id: number;
+  pythonJobId: number;
+  pythonRunId: number | null;
+  level: string;
+  stream: string;
+  message: string;
+  createdAt: string;
+};
+
+export type PythonDependencyDto = {
+  name: string;
+  version: string;
+};

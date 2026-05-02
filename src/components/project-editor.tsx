@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BarChart3, CalendarClock, Eye, FlaskConical, Globe, Link2, MessageSquareText, Play, Save, Send, Table2, Trash2 } from "lucide-react";
@@ -106,8 +106,12 @@ export function ProjectEditor({ mode, projectId, defaultTimezone }: ProjectEdito
   }, [state.spreadsheetUrl, state.gid, state.cellRange]);
 
   function update<K extends keyof typeof state>(key: K, value: (typeof state)[K]) {
-    setState((current) => ({ ...current, [key]: value }));
+    setState((current) => (current[key] === value ? current : { ...current, [key]: value }));
   }
+
+  const updateCronExpression = useCallback((cron: string) => {
+    setState((current) => (current.cronExpression === cron ? current : { ...current, cronExpression: cron }));
+  }, []);
 
   function payload() {
     return {
@@ -334,7 +338,7 @@ export function ProjectEditor({ mode, projectId, defaultTimezone }: ProjectEdito
 
               <div className="space-y-2">
                 <Label>Jadwal (Crontab)</Label>
-                <CronBuilder value={state.cronExpression} onChange={(cron) => update("cronExpression", cron)} />
+                <CronBuilder value={state.cronExpression} onChange={updateCronExpression} />
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">

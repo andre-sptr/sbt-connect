@@ -3,17 +3,21 @@ import { prisma } from "@/lib/prisma";
 import { getNextRunAt, validateCronExpression } from "@/lib/project-validation";
 import { runProject } from "@/lib/bot";
 import { writeLog } from "@/lib/logging";
+import { getPythonJobNextRunAt, validatePythonCronExpression } from "@/lib/python-job-validation";
+import { runPythonJob } from "@/lib/python-runner";
+import { writePythonJobLog } from "@/lib/python-job-service";
 
 const globalForScheduler = globalThis as unknown as {
   scheduler?: {
     initialized: boolean;
-    tasks: Map<number, ScheduledTask>;
+    projectTasks: Map<number, ScheduledTask>;
+    pythonJobTasks: Map<number, ScheduledTask>;
   };
 };
 
 function getState() {
   if (!globalForScheduler.scheduler) {
-    globalForScheduler.scheduler = { initialized: false, tasks: new Map() };
+    globalForScheduler.scheduler = { initialized: false, projectTasks: new Map(), pythonJobTasks: new Map() };
   }
   return globalForScheduler.scheduler;
 }
@@ -58,8 +62,10 @@ async function runWithRetry(projectId: number, maxRetries: number, retryDelayMin
 
 export async function reloadScheduler() {
   const state = getState();
-  for (const task of state.tasks.values()) task.stop();
-  state.tasks.clear();
+  for (const task of state.projectTasks.values()) task.stop();
+  for (const task of state.pythonJobTasks.values()) task.stop();
+  state.projectTasks.clear();
+  state.pythonJobTasks.clear();
 
   const projects = await prisma.project.findMany({ where: { enabled: true } });
   for (const project of projects) {
@@ -83,10 +89,50 @@ export async function reloadScheduler() {
       { timezone: project.timezone }
     );
 
-    state.tasks.set(project.id, task);
+    state.projectTasks.set(project.id, task);
     await prisma.project.update({
       where: { id: project.id },
       data: { nextRunAt: getNextRunAt(project.cronExpression, project.timezone) },
+    });
+  }
+
+  const pythonJobs = await prisma.pythonJob.findMany({ where: { enabled: true } });
+  for (const job of pythonJobs) {
+    if (!validatePythonCronExpression(job.cronExpression, job.timezone)) {
+      await writePythonJobLog({
+        pythonJobId: job.id,
+        level: "warning",
+        message: "Cron expression tidak valid, scheduler dilewati.",
+      });
+      continue;
+    }
+
+    const task = cron.schedule(
+      job.cronExpression,
+      async () => {
+        try {
+          await writePythonJobLog({ pythonJobId: job.id, message: "Scheduler menjalankan Python job." });
+          await runPythonJob(job.id, "scheduled");
+        } catch (error) {
+          await writePythonJobLog({
+            pythonJobId: job.id,
+            level: "error",
+            message: `Scheduler Python job gagal: ${error instanceof Error ? error.message : "unknown error"}`,
+          });
+        } finally {
+          await prisma.pythonJob.update({
+            where: { id: job.id },
+            data: { nextRunAt: getPythonJobNextRunAt(job.cronExpression, job.timezone) },
+          });
+        }
+      },
+      { timezone: job.timezone }
+    );
+
+    state.pythonJobTasks.set(job.id, task);
+    await prisma.pythonJob.update({
+      where: { id: job.id },
+      data: { nextRunAt: getPythonJobNextRunAt(job.cronExpression, job.timezone) },
     });
   }
 

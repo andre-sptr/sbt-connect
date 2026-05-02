@@ -5,6 +5,8 @@ export function middleware(request: NextRequest) {
   const isProtected =
     request.nextUrl.pathname.startsWith("/dashboard") ||
     request.nextUrl.pathname.startsWith("/api/projects") ||
+    request.nextUrl.pathname.startsWith("/api/python-jobs") ||
+    request.nextUrl.pathname.startsWith("/api/python-dependencies") ||
     request.nextUrl.pathname.startsWith("/api/groups") ||
     request.nextUrl.pathname.startsWith("/api/logs") ||
     request.nextUrl.pathname.startsWith("/api/overview") ||
