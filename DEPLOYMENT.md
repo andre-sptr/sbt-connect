@@ -347,7 +347,7 @@ Pastikan `SECRET` sama dengan `TELEGRAM_WEBHOOK_SECRET`.
 | Command | Fungsi |
 | --- | --- |
 | `/help` | Menampilkan contoh format request. |
-| `/groupid` | Menampilkan Telegram chat/group ID saat ini. |
+| `/groupid` | Menampilkan daftar WhatsApp group ID yang tersimpan di database/cache dashboard. |
 
 ### Format request Telegram
 

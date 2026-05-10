@@ -1,7 +1,9 @@
 import { getTelegramConfig } from "@/lib/config";
 import { createTelegramRequest } from "@/lib/telegram-service";
 import { sendTelegramMessage } from "@/lib/telegram";
+import { formatWhatsappGroupIdList } from "@/lib/telegram-command-helpers";
 import { formatTelegramRequestExample, parseTelegramRequestPayload } from "@/lib/telegram-request-parser";
+import { listCachedGroups } from "@/lib/group-cache";
 
 type TelegramWebhookUpdate = {
   update_id?: number;
@@ -34,7 +36,7 @@ function helpText() {
   return [
     "SBT Connect Telegram Bot",
     "",
-    "/groupid - tampilkan Telegram chat/group ID saat ini",
+    "/groupid - tampilkan daftar WhatsApp group ID dari database",
     "/help - tampilkan bantuan",
     "",
     "Format request:",
@@ -79,7 +81,8 @@ export async function POST(request: Request) {
 
   const command = commandName(text);
   if (command === "/groupid") {
-    await safeReply(chatId, `Telegram Group ID:\n${chatId}`);
+    const groups = await listCachedGroups();
+    await safeReply(chatId, formatWhatsappGroupIdList(groups));
     return Response.json({ ok: true });
   }
 
