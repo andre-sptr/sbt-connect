@@ -18,6 +18,38 @@ export type ProjectDto = {
   updatedAt: string;
 };
 
+export type TelegramRequestDto = {
+  id: number;
+  telegramUpdateId: string | null;
+  telegramMessageId: string | null;
+  chatId: string;
+  chatType: string | null;
+  chatTitle: string | null;
+  userId: string | null;
+  username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  picName: string | null;
+  picNik: string | null;
+  picUnit: string | null;
+  projectName: string | null;
+  groupIds: string[];
+  spreadsheetUrl: string | null;
+  gid: string | null;
+  cellRange: string | null;
+  caption: string | null;
+  cronExpression: string | null;
+  rawMessage: string;
+  status: "pending" | "approved" | "rejected" | string;
+  validationError: string | null;
+  rejectionReason: string | null;
+  reviewedAt: string | null;
+  projectId: number | null;
+  project: { id: number; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type RunDto = {
   id: number;
   projectId: number;

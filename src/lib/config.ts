@@ -27,6 +27,18 @@ export function getWahaConfig() {
   return { url, session, apiKey };
 }
 
+export function getTelegramConfig() {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  const username = process.env.TELEGRAM_BOT_USERNAME;
+
+  if (!token || !webhookSecret) {
+    throw new Error("TELEGRAM_BOT_TOKEN and TELEGRAM_WEBHOOK_SECRET must be configured server-side.");
+  }
+
+  return { token, webhookSecret, username };
+}
+
 export function getAuthSecret() {
   return process.env.AUTH_SECRET || "development-only-auth-secret";
 }

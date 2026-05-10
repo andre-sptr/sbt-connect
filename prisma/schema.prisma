@@ -27,6 +27,42 @@ model Project {
   updatedAt          DateTime @updatedAt
   runs               Run[]
   logs               Log[]
+  telegramRequests   TelegramRequest[]
+}
+
+model TelegramRequest {
+  id                Int      @id @default(autoincrement())
+  telegramUpdateId  String?
+  telegramMessageId String?
+  chatId            String
+  chatType          String?
+  chatTitle         String?
+  userId            String?
+  username          String?
+  firstName         String?
+  lastName          String?
+  picName           String?
+  picNik            String?
+  picUnit           String?
+  projectName       String?
+  groupIds          String?
+  spreadsheetUrl    String?
+  gid               String?
+  cellRange         String?
+  caption           String?
+  cronExpression    String?
+  rawMessage        String
+  status            String   @default("pending")
+  validationError   String?
+  rejectionReason   String?
+  reviewedAt        DateTime?
+  projectId         Int?
+  project           Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([projectId])
 }
 
 model Run {

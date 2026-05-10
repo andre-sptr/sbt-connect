@@ -96,6 +96,9 @@ LOGIN_PASSWORD="ganti-dengan-password-login-kuat"
 WAHA_URL="https://waha.domain-anda.com"
 WAHA_SESSION="default"
 WAHA_API_KEY="ganti-dengan-api-key-waha"
+TELEGRAM_BOT_TOKEN="token-bot-dari-botfather"
+TELEGRAM_WEBHOOK_SECRET="secret-panjang-untuk-header-webhook"
+TELEGRAM_BOT_USERNAME="username_bot_tanpa_at"
 ```
 
 Catatan:
@@ -103,6 +106,7 @@ Catatan:
 - `DATABASE_URL="file:../database/dashboard-bot.db"` menyimpan SQLite DB di folder `/www/wwwroot/dashboard-bot/database/dashboard-bot.db`.
 - Jangan gunakan `AUTH_SECRET` contoh di production.
 - `WAHA_URL` harus bisa diakses dari VPS. Bisa domain publik, subdomain, atau `http://127.0.0.1:3001` jika WAHA berjalan di VPS yang sama.
+- `TELEGRAM_WEBHOOK_SECRET` dipakai untuk memvalidasi header `X-Telegram-Bot-Api-Secret-Token` dari Telegram.
 
 ## 4. Install dependency
 
@@ -318,6 +322,54 @@ Jika `!run` dikirim tanpa nama project, bot akan membalas bahwa nama project har
 6. Jika ingin menjalankan laporan terdekat, kirim `!laporan`.
 
 Bot akan membalas status proses di chat yang sama. Untuk `!run` dan `!laporan`, bot akan mengirim balasan awal saat proses dimulai, lalu balasan sukses atau gagal setelah proses selesai.
+
+## 8b. Menggunakan Telegram request approval
+
+Telegram dipakai sebagai kanal request provisioning. Request yang valid akan masuk ke dashboard **Approvals** dan menunggu admin menekan Approve atau Reject.
+
+### Set webhook Telegram
+
+Ganti `TOKEN`, `DOMAIN`, dan `SECRET` sesuai `.env`:
+
+```bash
+curl -X POST "https://api.telegram.org/botTOKEN/setWebhook" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://DOMAIN/api/webhook/telegram",
+    "secret_token": "SECRET"
+  }'
+```
+
+Pastikan `SECRET` sama dengan `TELEGRAM_WEBHOOK_SECRET`.
+
+### Command Telegram
+
+| Command | Fungsi |
+| --- | --- |
+| `/help` | Menampilkan contoh format request. |
+| `/groupid` | Menampilkan Telegram chat/group ID saat ini. |
+
+### Format request Telegram
+
+```text
+PIC Pengaju: Nama / NIK / Unit
+Nama Project: Sales Daily
+Group ID Tujuan: 120363xxxxxxxx@g.us
+URL Spreadsheet: https://docs.google.com/spreadsheets/d/xxxx/edit
+GID Sheet: 0
+Rentang Cell: A1:K22
+Caption: *Laporan {projectName}*
+Tanggal: {date}
+Jam Running: 0 8 * * *
+```
+
+Setelah request diterima, buka:
+
+```text
+https://bot.domain-anda.com/dashboard/approvals
+```
+
+Approve akan membuat project aktif dan reload scheduler. Approve tidak langsung mengirim WhatsApp; pengiriman pertama mengikuti `Jam Running` atau bisa dijalankan manual dari halaman project.
 
 ### Catatan perilaku
 
