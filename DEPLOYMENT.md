@@ -86,7 +86,7 @@ Buat file `.env`:
 nano .env
 ```
 
-Isi contoh:
+Isi contoh (lihat juga `.env.example` di repo):
 
 ```env
 DATABASE_URL="file:../database/dashboard-bot.db"
@@ -98,15 +98,21 @@ WAHA_SESSION="default"
 WAHA_API_KEY="ganti-dengan-api-key-waha"
 TELEGRAM_BOT_TOKEN="token-bot-dari-botfather"
 TELEGRAM_WEBHOOK_SECRET="secret-panjang-untuk-header-webhook"
+# Opsional: username bot tanpa @
 TELEGRAM_BOT_USERNAME="username_bot_tanpa_at"
+# Opsional: chat ID grup/channel Telegram untuk notifikasi admin & tombol Approve/Reject
 TELEGRAM_ADMIN_CHAT_ID="id-grup-atau-channel-telegram-admin"
 
-# Role-Based Access Control (RBAC)
-# Super admin: akses penuh (semua command termasuk !edit, !delete, !project, !backup)
+# Role-Based Access Control (RBAC) WhatsApp bot
+# Super admin: akses penuh (semua command termasuk !edit, !delete, !project)
 # Operator: akses terbatas (!status, !run, !laporan, !info, !history, !schedule, !pause, !resume, !screenshot, !retry)
 # ADMIN_GROUP_ID masih didukung (legacy) dan diperlakukan sebagai super admin
 SUPER_ADMIN_GROUP_IDS="120363xxxxxxxx@g.us,120363yyyyyyyy@g.us"
 OPERATOR_GROUP_IDS="120363zzzzzzzz@g.us"
+ADMIN_GROUP_ID=""
+
+# Opsional: path executable Python untuk Python Jobs
+PYTHON_EXECUTABLE=""
 ```
 
 Catatan:
@@ -299,37 +305,49 @@ Setelah mengubah konfigurasi webhook atau `.env`, restart aplikasi:
 pm2 restart dashboard-bot
 ```
 
+### RBAC — Role-Based Access Control
+
+Bot hanya memproses pesan dari grup/chat yang terdaftar di env. Pesan dari grup lain diabaikan diam-diam.
+
+| Role | Env | Hak akses |
+| --- | --- | --- |
+| Super admin | `SUPER_ADMIN_GROUP_IDS` | Semua command |
+| Operator | `OPERATOR_GROUP_IDS` | Command read & run (lihat tabel di bawah) |
+| Legacy admin | `ADMIN_GROUP_ID` | Diperlakukan sebagai super admin |
+
 ### Daftar command
 
 Command bersifat case-insensitive. Pesan yang bukan command dikenal akan diabaikan.
 
-| Command | Fungsi |
-| --- | --- |
-| `!status` | Menampilkan daftar project aktif dan jadwal berikutnya. |
-| `!laporan` | Menjalankan project aktif dengan jadwal terdekat berikutnya. |
-| `!run nama-project` | Menjalankan project berdasarkan nama. Nama boleh exact atau sebagian nama project. |
-
-Contoh:
-
-```text
-!status
-!laporan
-!run Reporting Harian
-!run reporting
-```
-
-Jika `!run` dikirim tanpa nama project, bot akan membalas bahwa nama project harus disertakan.
+| Command | Fungsi | Role minimal |
+| --- | --- | --- |
+| `!help` | Menampilkan daftar command dan contoh pemakaian. | Operator |
+| `!status` | Menampilkan daftar project aktif dan jadwal berikutnya. | Operator |
+| `!laporan` | Menjalankan project dengan jadwal terdekat. | Operator |
+| `!run nama` | Menjalankan project berdasarkan nama (exact atau sebagian). | Operator |
+| `!info nama` | Menampilkan detail project (jadwal, grup, spreadsheet). | Operator |
+| `!history nama` | Menampilkan riwayat run terakhir project. | Operator |
+| `!schedule` | Menampilkan semua project beserta jadwal cron berikutnya. | Operator |
+| `!pause nama` | Menonaktifkan project sementara. | Operator |
+| `!resume nama` | Mengaktifkan kembali project yang di-pause. | Operator |
+| `!screenshot nama` | Mengambil screenshot spreadsheet tanpa mengirim ke WhatsApp. | Operator |
+| `!retry nama` | Menjalankan ulang project yang terakhir gagal. | Operator |
+| `!group` | Menampilkan daftar WhatsApp group ID yang tersimpan di cache. | Super admin |
+| `!project ...` | Membuat project baru lewat WhatsApp (format multi-baris). | Super admin |
+| `!edit nama field nilai` | Mengedit field project (cron, caption, name, enabled, retries). | Super admin |
+| `!delete nama` | Menghapus project (meminta konfirmasi). | Super admin |
+| `!confirm` | Mengonfirmasi operasi yang membutuhkan konfirmasi (!delete, !edit). | Super admin |
 
 ### Cara memakai dari WhatsApp
 
 1. Pastikan session WAHA sudah tersambung ke WhatsApp.
 2. Pastikan aplikasi `dashboard-bot` online di PM2.
-3. Pastikan minimal ada satu project aktif di dashboard.
-4. Kirim `!status` ke nomor WhatsApp yang dipakai WAHA.
-5. Jika ingin menjalankan project tertentu, kirim `!run nama-project`.
-6. Jika ingin menjalankan laporan terdekat, kirim `!laporan`.
+3. Pastikan chat ID grup pengirim terdaftar di `SUPER_ADMIN_GROUP_IDS` atau `OPERATOR_GROUP_IDS`.
+4. Kirim `!help` untuk melihat daftar command yang tersedia.
+5. Kirim `!status` untuk melihat project aktif dan jadwal berikutnya.
+6. Kirim `!run nama-project` untuk menjalankan project tertentu secara manual.
 
-Bot akan membalas status proses di chat yang sama. Untuk `!run` dan `!laporan`, bot akan mengirim balasan awal saat proses dimulai, lalu balasan sukses atau gagal setelah proses selesai.
+Bot akan membalas di chat yang sama. Untuk `!run` dan `!laporan`, bot mengirim konfirmasi awal saat proses dimulai, lalu balasan sukses atau gagal setelah selesai.
 
 ## 8b. Menggunakan Telegram request approval
 
@@ -362,7 +380,7 @@ Pastikan `SECRET` sama dengan `TELEGRAM_WEBHOOK_SECRET`.
 ```text
 PIC Pengaju: Nama / NIK / Unit
 Nama Project: Sales Daily
-Group ID Tujuan: 120363xxxxxxxx@g.us
+Nama Grup: Sales Jawa, Sales Bali
 URL Spreadsheet: https://docs.google.com/spreadsheets/d/xxxx/edit
 GID Sheet: 0
 Rentang Cell: A1:K22
@@ -370,6 +388,10 @@ Caption: *Laporan {projectName}*
 Tanggal: {date}
 Jam Running: 0 8 * * *
 ```
+
+Field `Nama Grup` bisa diisi nama grup WhatsApp (bot akan mencari ID-nya secara otomatis dari cache grup) atau langsung Group ID (`120363xxxxxxxx@g.us`). Beberapa grup dipisah koma.
+
+Jika nama grup ambigu (cocok dengan lebih dari satu grup), bot akan meminta pengaju memilih grup yang dimaksud sebelum request diteruskan ke admin.
 
 Setelah request diterima, buka:
 
@@ -382,10 +404,12 @@ Bot Telegram akan mengirim feedback ke chat pengaju saat admin menekan Approve a
 
 ### Catatan perilaku
 
-- Command dari pesan yang dikirim oleh bot sendiri akan diabaikan.
-- `!run nama-project` mencari project berdasarkan nama yang mengandung teks tersebut. Jika ada beberapa nama mirip, project pertama yang ditemukan database akan dijalankan.
+- Pesan dari bot sendiri (`fromMe: true`) selalu diabaikan.
+- Pesan dari grup yang tidak terdaftar di `SUPER_ADMIN_GROUP_IDS`, `OPERATOR_GROUP_IDS`, atau `ADMIN_GROUP_ID` diabaikan diam-diam.
+- `!run nama` mencari project berdasarkan nama yang mengandung teks tersebut. Jika ada beberapa nama mirip, bot meminta pengaju memilih.
 - `!laporan` hanya memilih project yang `enabled` dan memiliki jadwal paling dekat berdasarkan `nextRunAt`.
-- Jika proses gagal, bot membalas ringkasan error. Detail lengkap tetap dicek dari log aplikasi.
+- `!delete` dan beberapa `!edit` memerlukan konfirmasi via `!confirm` sebelum dieksekusi.
+- Jika proses gagal, bot membalas ringkasan error. Detail lengkap dicek dari `pm2 logs dashboard-bot`.
 
 ### Tes webhook command
 
@@ -690,7 +714,7 @@ Pastikan timezone proyek adalah `Asia/Jakarta` atau timezone lain yang valid.
 
 ## 12. Checklist selesai deploy
 
-- `.env` production sudah dibuat.
+- `.env` production sudah dibuat (lihat `.env.example`).
 - `npm ci` berhasil.
 - `npx playwright install --with-deps chromium` berhasil.
 - `npx prisma db push` berhasil.
@@ -699,5 +723,9 @@ Pastikan timezone proyek adalah `Asia/Jakarta` atau timezone lain yang valid.
 - Nginx reverse proxy mengarah ke `127.0.0.1:3000`.
 - SSL aktif di aaPanel.
 - WAHA bisa diakses dari aplikasi.
+- Webhook WAHA mengarah ke `https://domain-anda.com/api/webhook/waha`.
+- `SUPER_ADMIN_GROUP_IDS` atau `ADMIN_GROUP_ID` sudah diisi Group ID yang benar.
+- Webhook Telegram sudah di-set (jika memakai Telegram bot).
 - Login dashboard berhasil.
+- Test `!status` dari WhatsApp berhasil.
 - Test screenshot dan kirim WhatsApp berhasil.
