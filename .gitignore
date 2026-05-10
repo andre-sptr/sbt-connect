@@ -1,2 +1,15 @@
+.next
+.venv
 node_modules
-node_modules
+dist
+build
+coverage
+.env
+.env.local
+.env.*.local
+*.log
+database
+prisma/*.db
+prisma/*.db-journal
+storage
+public/previews
