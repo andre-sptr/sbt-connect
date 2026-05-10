@@ -3,6 +3,7 @@ type CachedWhatsappGroup = {
   name: string;
 };
 
+/** @deprecated /groupid dihapus dari Telegram bot — Group ID tidak diekspos ke user. */
 export function formatWhatsappGroupIdList(groups: CachedWhatsappGroup[], limit = 50) {
   if (groups.length === 0) {
     return "Belum ada cached WhatsApp group. Refresh daftar group dari dashboard Groups terlebih dahulu.";

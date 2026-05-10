@@ -22,22 +22,37 @@ function todayId() {
   }).format(new Date());
 }
 
-function formatCaption(template: string, projectName: string) {
+function formatCaption(template: string, projectName: string, runCount?: number) {
   const now = new Date();
-  const date = new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "long",
-    timeZone: "Asia/Jakarta",
-  }).format(now);
-  const datetime = new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Jakarta",
-  }).format(now);
+
+  const tz = "Asia/Jakarta";
+
+  const date = new Intl.DateTimeFormat("id-ID", { dateStyle: "long", timeZone: tz }).format(now);
+  const datetime = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: tz }).format(now);
+  const time = new Intl.DateTimeFormat("id-ID", { timeStyle: "short", timeZone: tz }).format(now);
+
+  const weekday = new Intl.DateTimeFormat("id-ID", { weekday: "long", timeZone: tz }).format(now);
+  const month = new Intl.DateTimeFormat("id-ID", { month: "long", timeZone: tz }).format(now);
+
+  // Nomor minggu dalam bulan (1-based)
+  const jakartaDate = new Date(now.toLocaleString("en-US", { timeZone: tz }));
+  const dayOfMonth = jakartaDate.getDate();
+  const weekOfMonth = Math.ceil(dayOfMonth / 7);
+
+  // Quarter (Q1–Q4)
+  const monthIndex = jakartaDate.getMonth(); // 0-based
+  const quarter = `Q${Math.floor(monthIndex / 3) + 1}`;
 
   return template
     .replaceAll("{date}", date)
     .replaceAll("{datetime}", datetime)
-    .replaceAll("{projectName}", projectName);
+    .replaceAll("{time}", time)
+    .replaceAll("{projectName}", projectName)
+    .replaceAll("{weekday}", weekday)
+    .replaceAll("{week}", `Minggu ke-${weekOfMonth}`)
+    .replaceAll("{month}", month)
+    .replaceAll("{quarter}", quarter)
+    .replaceAll("{runCount}", runCount != null ? String(runCount) : "");
 }
 
 async function optimizeImage(filePath: string, runId: number, projectId: number) {
@@ -138,11 +153,12 @@ async function sendImageToWhatsapp(input: {
   groupIds: string[];
   caption: string;
   filePath: string;
+  runCount?: number;
 }) {
   const config = getWahaConfig();
   const image = await fs.readFile(input.filePath);
   const data = image.toString("base64");
-  const caption = formatCaption(input.caption, input.projectName);
+  const caption = formatCaption(input.caption, input.projectName, input.runCount);
   let allSuccess = true;
 
   for (const groupId of input.groupIds) {
@@ -219,6 +235,14 @@ export async function runProject(projectId: number, action: BotAction = "full") 
       });
       thumbnailPath = await createThumbnail(screenshotPath, run.id, projectId);
     } else if (action !== "screenshot") {
+      // Hitung berapa kali project sudah berhasil dijalankan hari ini (untuk {runCount})
+      const todayStart = new Date(
+        new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date()) + "T00:00:00+07:00"
+      );
+      const runCountToday = await prisma.run.count({
+        where: { projectId, status: "success", startedAt: { gte: todayStart } },
+      });
+
       const sent = await sendImageToWhatsapp({
         projectId,
         runId: run.id,
@@ -226,6 +250,7 @@ export async function runProject(projectId: number, action: BotAction = "full") 
         groupIds,
         caption: project.caption,
         filePath: screenshotPath,
+        runCount: runCountToday + 1, // run ini akan jadi run ke-(n+1) hari ini
       });
       if (!sent) {
         throw new Error("Sebagian pengiriman WhatsApp gagal. Lihat log untuk detail.");

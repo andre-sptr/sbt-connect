@@ -99,6 +99,14 @@ WAHA_API_KEY="ganti-dengan-api-key-waha"
 TELEGRAM_BOT_TOKEN="token-bot-dari-botfather"
 TELEGRAM_WEBHOOK_SECRET="secret-panjang-untuk-header-webhook"
 TELEGRAM_BOT_USERNAME="username_bot_tanpa_at"
+TELEGRAM_ADMIN_CHAT_ID="id-grup-atau-channel-telegram-admin"
+
+# Role-Based Access Control (RBAC)
+# Super admin: akses penuh (semua command termasuk !edit, !delete, !project, !backup)
+# Operator: akses terbatas (!status, !run, !laporan, !info, !history, !schedule, !pause, !resume, !screenshot, !retry)
+# ADMIN_GROUP_ID masih didukung (legacy) dan diperlakukan sebagai super admin
+SUPER_ADMIN_GROUP_IDS="120363xxxxxxxx@g.us,120363yyyyyyyy@g.us"
+OPERATOR_GROUP_IDS="120363zzzzzzzz@g.us"
 ```
 
 Catatan:

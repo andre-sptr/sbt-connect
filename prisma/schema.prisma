@@ -45,7 +45,8 @@ model TelegramRequest {
   picNik            String?
   picUnit           String?
   projectName       String?
-  groupIds          String?
+  groupIds          String?   // JSON: resolved WA group IDs ["120363xxx@g.us", ...]
+  groupNames        String?   // JSON: original group names user typed ["Sales Jawa", ...]
   spreadsheetUrl    String?
   gid               String?
   cellRange         String?
@@ -56,6 +57,7 @@ model TelegramRequest {
   validationError   String?
   rejectionReason   String?
   reviewedAt        DateTime?
+  adminMessageId    String?  // Telegram message_id notif di chat admin (untuk edit inline keyboard)
   projectId         Int?
   project           Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   createdAt         DateTime @default(now())
@@ -63,6 +65,16 @@ model TelegramRequest {
 
   @@index([status, createdAt])
   @@index([projectId])
+}
+
+model TelegramConversationState {
+  id         Int      @id @default(autoincrement())
+  chatId     String   @unique
+  step       String   // "awaiting_group_selection" | "awaiting_invite"
+  payload    String   // JSON: state data
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Run {

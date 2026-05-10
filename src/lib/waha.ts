@@ -55,7 +55,7 @@ function extractGroup(item: WahaGroupResponseItem): WahaGroup | null {
   return { id: remote, name };
 }
 
-export async function fetchWahaGroupsFromApi() {
+export async function fetchWahaGroupsFromApi(): Promise<WahaGroup[]> {
   const config = getWahaConfig();
   const response = await fetch(`${config.url.replace(/\/$/, "")}/api/${config.session}/groups`, {
     headers: {
@@ -75,6 +75,27 @@ export async function fetchWahaGroupsFromApi() {
     const group = extractGroup(item);
     if (group) unique.set(group.id, group);
   }
-  return Array.from(unique.values())
-    .sort((a, b) => a.name.localeCompare(b.name));
+  return Array.from(unique.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Cek apakah bot WA sudah menjadi member di grup-grup tertentu
+ * dengan mengambil daftar grup dari WAHA API (bot hanya bisa melihat
+ * grup yang ia ikuti).
+ */
+export async function checkBotGroupMembership(
+  groupIds: string[]
+): Promise<{ groupId: string; isMember: boolean }[]> {
+  if (groupIds.length === 0) return [];
+
+  let allGroups: WahaGroup[];
+  try {
+    allGroups = await fetchWahaGroupsFromApi();
+  } catch {
+    // Jika API gagal, anggap semua belum jadi member
+    return groupIds.map((groupId) => ({ groupId, isMember: false }));
+  }
+
+  const memberSet = new Set(allGroups.map((g) => g.id));
+  return groupIds.map((groupId) => ({ groupId, isMember: memberSet.has(groupId) }));
 }

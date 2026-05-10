@@ -33,7 +33,10 @@ export type TelegramRequestDto = {
   picNik: string | null;
   picUnit: string | null;
   projectName: string | null;
+  /** Resolved WA group IDs */
   groupIds: string[];
+  /** Nama-nama grup yang diketik user (human-readable) */
+  groupNames: string[];
   spreadsheetUrl: string | null;
   gid: string | null;
   cellRange: string | null;

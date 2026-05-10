@@ -24,14 +24,21 @@ export async function GET(_request: Request, context: Context) {
 
   const lastRun = recentRuns[0] ?? null;
 
+  // Cari thumbnail dari run sukses terakhir
+  const lastSuccessRun = recentRuns.find((r) => r.status === "success" && r.thumbnailPath);
+  const thumbnailRunId = lastSuccessRun?.id ?? null;
+
   return Response.json({
     name: project.name,
     enabled: project.enabled,
     lastRunAt: project.lastRunAt,
     nextRunAt: project.nextRunAt,
+    cronExpression: project.cronExpression,
+    timezone: project.timezone,
     successRate,
     totalRuns: total,
     lastRunStatus: lastRun?.status ?? null,
     lastRunError: lastRun?.errorSummary ?? null,
+    thumbnailRunId,
   });
 }

@@ -1,9 +1,14 @@
 import { CronExpressionParser } from "cron-parser";
 
+/**
+ * Field labels yang dikenali dalam format request Telegram.
+ * "Nama Grup Tujuan" menggantikan "Group ID Tujuan" — user cukup
+ * mengetik nama grup, ID diselesaikan internal oleh sistem.
+ */
 const fieldLabels = {
   pic: "PIC Pengaju",
   name: "Nama Project",
-  groupIds: "Group ID Tujuan",
+  groupNames: "Nama Grup Tujuan",
   spreadsheetUrl: "URL Spreadsheet",
   gid: "GID Sheet",
   cellRange: "Rentang Cell",
@@ -28,7 +33,8 @@ export type TelegramRequesterPic = {
 export type ParsedTelegramRequest = {
   pic: TelegramRequesterPic;
   name: string;
-  groupIds: string[];
+  /** Nama-nama grup yang diketik user — belum berupa ID. */
+  groupNames: string[];
   spreadsheetUrl: string;
   gid: string;
   cellRange: string;
@@ -77,10 +83,14 @@ function splitPic(value: string): TelegramRequesterPic {
   return { name, nik, unit };
 }
 
-function splitGroupIds(value: string) {
+/**
+ * Parse nama-nama grup yang dipisahkan koma atau newline.
+ * Setiap entry adalah nama grup, bukan ID.
+ */
+export function splitGroupNames(value: string): string[] {
   return value
-    .split(/[\s,;]+/)
-    .map((groupId) => groupId.trim())
+    .split(/[,\n]+/)
+    .map((s) => s.trim())
     .filter(Boolean);
 }
 
@@ -102,6 +112,11 @@ function isValidUrl(value: string) {
   }
 }
 
+/**
+ * Parse payload pesan Telegram request.
+ * Mengembalikan ParsedTelegramRequest dengan groupNames (bukan groupIds).
+ * Resolusi nama → ID dilakukan kemudian oleh conversation engine.
+ */
 export function parseTelegramRequestPayload(text: string): TelegramRequestParseResult {
   const fields = parseRawFields(text);
   const errors: string[] = [];
@@ -122,9 +137,9 @@ export function parseTelegramRequestPayload(text: string): TelegramRequestParseR
     errors.push(`${fieldLabels.cronExpression} tidak valid.`);
   }
 
-  const groupIds = splitGroupIds(fields.groupIds ?? "");
-  if (fields.groupIds && groupIds.length === 0) {
-    errors.push(`${fieldLabels.groupIds} wajib berisi minimal satu group ID.`);
+  const groupNames = splitGroupNames(fields.groupNames ?? "");
+  if (fields.groupNames && groupNames.length === 0) {
+    errors.push(`${fieldLabels.groupNames} wajib berisi minimal satu nama grup.`);
   }
 
   if (errors.length > 0) return { ok: false, errors, fields };
@@ -135,7 +150,7 @@ export function parseTelegramRequestPayload(text: string): TelegramRequestParseR
     data: {
       pic: splitPic(fields.pic ?? ""),
       name: fields.name ?? "",
-      groupIds,
+      groupNames,
       spreadsheetUrl: fields.spreadsheetUrl ?? "",
       gid: fields.gid ?? "",
       cellRange: (fields.cellRange ?? "").toUpperCase(),
@@ -149,7 +164,7 @@ export function formatTelegramRequestExample() {
   return [
     "PIC Pengaju: Nama / NIK / Unit",
     "Nama Project: Sales Daily",
-    "Group ID Tujuan: 120363xxxxxxxx@g.us",
+    "Nama Grup Tujuan: Sales Sumatera, Sales Jawa",
     "URL Spreadsheet: https://docs.google.com/spreadsheets/d/xxxx/edit",
     "GID Sheet: 0",
     "Rentang Cell: A1:K22",
@@ -158,3 +173,7 @@ export function formatTelegramRequestExample() {
     "Jam Running: 0 8 * * *",
   ].join("\n");
 }
+
+/** Pattern untuk mendeteksi apakah teks adalah format request Telegram. */
+export const requestLabelPattern =
+  /\b(PIC Pengaju|Nama Project|Nama Grup Tujuan|URL Spreadsheet|GID Sheet|Rentang Cell|Caption|Jam Running)\b/i;

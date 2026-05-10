@@ -7,6 +7,10 @@ import { safeJsonArray } from "@/lib/utils";
 import type { TelegramRequestParseResult } from "@/lib/telegram-request-parser";
 import { sendTelegramMessage } from "@/lib/telegram";
 import { formatTelegramApprovalFeedback, formatTelegramRejectionFeedback } from "@/lib/telegram-command-helpers";
+import {
+  updateAdminNotificationApproved,
+  updateAdminNotificationRejected,
+} from "@/lib/telegram-admin";
 
 export const telegramRequestStatuses = {
   pending: "pending",
@@ -41,20 +45,42 @@ export function telegramRequestToDto(request: TelegramRequest & { project?: { id
   return {
     ...request,
     groupIds: safeJsonArray(request.groupIds ?? "[]"),
+    groupNames: safeJsonArray(request.groupNames ?? "[]"),
     project: request.project ?? null,
   };
 }
 
+/**
+ * Simpan request Telegram ke database.
+ *
+ * @param resolvedGroupIds  - WA group IDs hasil resolusi nama → ID oleh conversation engine
+ * @param groupNames        - Nama-nama grup yang diketik user (human-readable)
+ */
 export async function createTelegramRequest(input: {
   requester: TelegramRequester;
   rawMessage: string;
   parseResult: TelegramRequestParseResult;
+  /** Resolved WA group IDs dari conversation engine. Jika tidak disediakan, groupIds diambil dari parseResult (legacy). */
+  resolvedGroupIds?: string[];
+  /** Nama-nama grup yang diketik user. */
+  groupNames?: string[];
 }) {
   const fields = parsedFields(input.parseResult);
   const pic = input.parseResult.ok ? input.parseResult.data.pic : splitPic(fields.pic);
-  const groupIds = input.parseResult.ok
-    ? input.parseResult.data.groupIds
-    : fields.groupIds?.split(/[\s,;]+/).map((item) => item.trim()).filter(Boolean) ?? [];
+
+  // Gunakan resolvedGroupIds jika tersedia (conversation engine path)
+  // Fallback ke groupNames dari parseResult untuk backward compat
+  const groupIds =
+    input.resolvedGroupIds ??
+    (input.parseResult.ok
+      ? [] // groupIds sekarang diisi oleh conversation engine, bukan parser
+      : []);
+
+  const groupNames =
+    input.groupNames ??
+    (input.parseResult.ok && "groupNames" in input.parseResult.data
+      ? (input.parseResult.data as { groupNames: string[] }).groupNames
+      : []);
 
   return prisma.telegramRequest.create({
     data: {
@@ -72,6 +98,7 @@ export async function createTelegramRequest(input: {
       picUnit: pic.unit || null,
       projectName: fields.name || null,
       groupIds: groupIds.length > 0 ? JSON.stringify(groupIds) : null,
+      groupNames: groupNames.length > 0 ? JSON.stringify(groupNames) : null,
       spreadsheetUrl: fields.spreadsheetUrl || null,
       gid: fields.gid || null,
       cellRange: fields.cellRange?.toUpperCase() || null,
@@ -96,6 +123,7 @@ async function sendTelegramFeedback(chatId: string, text: string) {
   try {
     await sendTelegramMessage(chatId, text);
   } catch {
+    // Diam jika gagal
   }
 }
 
@@ -104,9 +132,12 @@ export async function approveTelegramRequest(id: number) {
   if (!request) throw new Error("Request Telegram tidak ditemukan.");
   assertPending(request);
 
+  // groupIds sudah berisi resolved WA IDs dari conversation engine
+  const groupIds = safeJsonArray(request.groupIds ?? "[]");
+
   const parsed = projectSchema.safeParse({
     name: request.projectName,
-    groupIds: safeJsonArray(request.groupIds ?? "[]"),
+    groupIds,
     spreadsheetUrl: request.spreadsheetUrl,
     gid: request.gid,
     cellRange: request.cellRange,
@@ -143,6 +174,8 @@ export async function approveTelegramRequest(id: number) {
   });
 
   await reloadScheduler();
+
+  // Kirim feedback ke requester
   await sendTelegramFeedback(
     request.chatId,
     formatTelegramApprovalFeedback({
@@ -152,6 +185,9 @@ export async function approveTelegramRequest(id: number) {
       cronExpression: project.cronExpression,
     })
   );
+
+  // Edit pesan notif di chat admin (hapus tombol, tampilkan status)
+  updateAdminNotificationApproved(request.id, project.name).catch(() => {});
 
   return {
     request: telegramRequestToDto(updatedRequest),
@@ -175,6 +211,7 @@ export async function rejectTelegramRequest(id: number, reason: string) {
     include: { project: { select: { id: true, name: true } } },
   });
 
+  // Kirim feedback ke requester
   await sendTelegramFeedback(
     request.chatId,
     formatTelegramRejectionFeedback({
@@ -183,6 +220,9 @@ export async function rejectTelegramRequest(id: number, reason: string) {
       reason: rejectionReason,
     })
   );
+
+  // Edit pesan notif di chat admin (hapus tombol, tampilkan status)
+  updateAdminNotificationRejected(request.id, rejectionReason).catch(() => {});
 
   return telegramRequestToDto(updatedRequest);
 }
