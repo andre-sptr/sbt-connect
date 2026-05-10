@@ -5,6 +5,8 @@ import { projectSchema, validateCronExpression } from "@/lib/project-validation"
 import { reloadScheduler } from "@/lib/scheduler";
 import { safeJsonArray } from "@/lib/utils";
 import type { TelegramRequestParseResult } from "@/lib/telegram-request-parser";
+import { sendTelegramMessage } from "@/lib/telegram";
+import { formatTelegramApprovalFeedback, formatTelegramRejectionFeedback } from "@/lib/telegram-command-helpers";
 
 export const telegramRequestStatuses = {
   pending: "pending",
@@ -90,6 +92,13 @@ function assertPending(request: TelegramRequest) {
   }
 }
 
+async function sendTelegramFeedback(chatId: string, text: string) {
+  try {
+    await sendTelegramMessage(chatId, text);
+  } catch {
+  }
+}
+
 export async function approveTelegramRequest(id: number) {
   const request = await prisma.telegramRequest.findUnique({ where: { id } });
   if (!request) throw new Error("Request Telegram tidak ditemukan.");
@@ -134,6 +143,15 @@ export async function approveTelegramRequest(id: number) {
   });
 
   await reloadScheduler();
+  await sendTelegramFeedback(
+    request.chatId,
+    formatTelegramApprovalFeedback({
+      requestId: request.id,
+      projectName: project.name,
+      projectId: project.id,
+      cronExpression: project.cronExpression,
+    })
+  );
 
   return {
     request: telegramRequestToDto(updatedRequest),
@@ -146,15 +164,25 @@ export async function rejectTelegramRequest(id: number, reason: string) {
   if (!request) throw new Error("Request Telegram tidak ditemukan.");
   assertPending(request);
 
+  const rejectionReason = reason.trim() || "Ditolak oleh admin.";
   const updatedRequest = await prisma.telegramRequest.update({
     where: { id },
     data: {
       status: telegramRequestStatuses.rejected,
-      rejectionReason: reason.trim() || "Ditolak oleh admin.",
+      rejectionReason,
       reviewedAt: new Date(),
     },
     include: { project: { select: { id: true, name: true } } },
   });
+
+  await sendTelegramFeedback(
+    request.chatId,
+    formatTelegramRejectionFeedback({
+      requestId: request.id,
+      projectName: request.projectName,
+      reason: rejectionReason,
+    })
+  );
 
   return telegramRequestToDto(updatedRequest);
 }

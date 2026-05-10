@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const { formatWhatsappGroupIdList } = await import("../src/lib/telegram-command-helpers.ts");
+const {
+  formatTelegramApprovalFeedback,
+  formatTelegramRejectionFeedback,
+  formatWhatsappGroupIdList,
+} = await import("../src/lib/telegram-command-helpers.ts");
 
 test("formats cached WhatsApp group IDs for Telegram /groupid", () => {
   const text = formatWhatsappGroupIdList([
@@ -37,4 +41,32 @@ test("limits cached WhatsApp group list output", () => {
 
   assert.match(text, /Ditampilkan 50 dari 52 group/);
   assert.doesNotMatch(text, /Group 51/);
+});
+
+test("formats approval feedback for the requester", () => {
+  const text = formatTelegramApprovalFeedback({
+    requestId: 12,
+    projectName: "Sales Daily",
+    projectId: 34,
+    cronExpression: "0 8 * * *",
+  });
+
+  assert.match(text, /Request disetujui admin/);
+  assert.match(text, /ID Request: 12/);
+  assert.match(text, /Project: Sales Daily/);
+  assert.match(text, /Project ID: 34/);
+  assert.match(text, /Jadwal: 0 8 \* \* \*/);
+});
+
+test("formats rejection feedback for the requester", () => {
+  const text = formatTelegramRejectionFeedback({
+    requestId: 15,
+    projectName: "Ops Daily",
+    reason: "Range cell belum benar.",
+  });
+
+  assert.match(text, /Request ditolak admin/);
+  assert.match(text, /ID Request: 15/);
+  assert.match(text, /Project: Ops Daily/);
+  assert.match(text, /Alasan: Range cell belum benar\./);
 });

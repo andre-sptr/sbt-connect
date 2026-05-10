@@ -370,6 +370,7 @@ https://bot.domain-anda.com/dashboard/approvals
 ```
 
 Approve akan membuat project aktif dan reload scheduler. Approve tidak langsung mengirim WhatsApp; pengiriman pertama mengikuti `Jam Running` atau bisa dijalankan manual dari halaman project.
+Bot Telegram akan mengirim feedback ke chat pengaju saat admin menekan Approve atau Reject.
 
 ### Catatan perilaku
 

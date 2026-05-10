@@ -16,3 +16,35 @@ export function formatWhatsappGroupIdList(groups: CachedWhatsappGroup[], limit =
 
   return `Cached WhatsApp Groups\n\n${lines.join("\n\n")}${suffix}`;
 }
+
+export function formatTelegramApprovalFeedback(input: {
+  requestId: number;
+  projectName: string;
+  projectId: number;
+  cronExpression: string;
+}) {
+  return [
+    "Request disetujui admin.",
+    "",
+    `ID Request: ${input.requestId}`,
+    `Project: ${input.projectName}`,
+    `Project ID: ${input.projectId}`,
+    `Jadwal: ${input.cronExpression}`,
+    "",
+    "Project sudah aktif dan akan berjalan sesuai jadwal.",
+  ].join("\n");
+}
+
+export function formatTelegramRejectionFeedback(input: {
+  requestId: number;
+  projectName?: string | null;
+  reason: string;
+}) {
+  return [
+    "Request ditolak admin.",
+    "",
+    `ID Request: ${input.requestId}`,
+    `Project: ${input.projectName || "-"}`,
+    `Alasan: ${input.reason.trim() || "Tidak ada alasan tambahan."}`,
+  ].join("\n");
+}
