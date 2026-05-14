@@ -71,7 +71,7 @@ function helpText() {
     "",
     "/help    - tampilkan bantuan",
     "/start   - tampilkan bantuan",
-    "/daftar <username> - daftar akun dashboard",
+    "/daftar <username> - daftar akun",
     "",
     "Untuk membuat dan mengelola project laporan, gunakan dashboard web.",
   ].join("\n");
