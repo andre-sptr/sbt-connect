@@ -295,7 +295,6 @@ export async function handleUserRequestApprove(
     `Password: ${password}`,
     ``,
     `Login di: ${process.env.NEXT_PUBLIC_APP_URL || "dashboard"}`,
-    `Segera ganti password setelah login pertama.`,
   ].join("\n");
 
   try {

@@ -38,7 +38,6 @@ export async function POST(_request: Request, context: Context) {
     `Password baru: ${newPassword}`,
     ``,
     `Login di: ${process.env.NEXT_PUBLIC_APP_URL || "dashboard"}`,
-    `Segera ganti password setelah login.`,
   ].join("\n");
 
   try {
