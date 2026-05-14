@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, CheckCheck, Code2, FolderKanban, LogOut, Menu, MessageCircle, ScrollText, Shield, X } from "lucide-react";
+import { BarChart3, Code2, FolderKanban, LogOut, Menu, MessageCircle, ScrollText, Shield, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -11,7 +11,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const navItems = [
   { href: "/dashboard", label: "Overview", icon: BarChart3 },
   { href: "/dashboard/projects", label: "Projects", icon: FolderKanban },
-  { href: "/dashboard/approvals", label: "Approvals", icon: CheckCheck },
   { href: "/dashboard/python-jobs", label: "Pythons", icon: Code2 },
   { href: "/dashboard/python-dependencies", label: "Py Deps", icon: Code2 },
   { href: "/dashboard/groups", label: "Groups", icon: MessageCircle },

@@ -16,6 +16,9 @@ export async function verifySessionToken(token?: string): Promise<SessionPayload
   const payload = verifyTokenSignature(token);
   if (!payload) return null;
 
+  // Reject legacy tokens (pre-multi-user) that lack a userId
+  if (!payload.userId) return null;
+
   // Verify user still exists and is active in DB
   const user = await prisma.user.findUnique({ where: { id: payload.userId } });
   if (!user || !user.isActive) return null;
@@ -30,13 +33,15 @@ export async function getSession(): Promise<SessionPayload | null> {
 
 export async function requireSession(): Promise<SessionPayload> {
   const session = await getSession();
-  if (!session) redirect("/login");
+  // Redirect through the logout route so the stale cookie is cleared before
+  // hitting /login — prevents the middleware from bouncing back to /dashboard.
+  if (!session) redirect("/api/auth/logout");
   return session;
 }
 
 export async function requireAdminPage(): Promise<SessionPayload> {
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session) redirect("/api/auth/logout");
   if (session.role !== "admin") redirect("/dashboard");
   return session;
 }

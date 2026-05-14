@@ -119,6 +119,19 @@ async function captureSheetScreenshot(input: {
     await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 90000 });
     await page.waitForSelector("table.waffle:visible", { timeout: 60000 });
     await page.waitForTimeout(3000);
+
+    // Expand viewport to the table's full natural height so Google Sheets
+    // renders all rows (it uses virtual scrolling and clips rows outside
+    // the viewport, which causes the screenshot to be cut off).
+    const fullTableHeight = await page.evaluate(() => {
+      const table = document.querySelector("table.waffle");
+      return table ? (table as HTMLElement).scrollHeight : 0;
+    });
+    if (fullTableHeight > 1500) {
+      await page.setViewportSize({ width: 3000, height: fullTableHeight + 200 });
+      await page.waitForTimeout(1000); // allow re-render at new viewport size
+    }
+
     await page.evaluate(() => {
       document.querySelectorAll("img").forEach((img) => {
         img.style.border = "none";
