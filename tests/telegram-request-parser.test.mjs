@@ -6,7 +6,7 @@ const { parseTelegramRequestPayload } = await import("../src/lib/telegram-reques
 const validPayload = [
   "PIC Pengaju: Budi Santoso / 123456 / Sales",
   "Nama Project: Sales Daily",
-  "Group ID Tujuan: 120363123456789@g.us",
+  "Nama Grup Tujuan: Sales Jawa",
   "URL Spreadsheet: https://docs.google.com/spreadsheets/d/example/edit",
   "GID Sheet: 0",
   "Rentang Cell: A1:K22",
@@ -25,7 +25,7 @@ test("parses a valid label-based Telegram request payload", () => {
     unit: "Sales",
   });
   assert.equal(result.data.name, "Sales Daily");
-  assert.deepEqual(result.data.groupIds, ["120363123456789@g.us"]);
+  assert.deepEqual(result.data.groupNames, ["Sales Jawa"]);
   assert.equal(result.data.spreadsheetUrl, "https://docs.google.com/spreadsheets/d/example/edit");
   assert.equal(result.data.gid, "0");
   assert.equal(result.data.cellRange, "A1:K22");
@@ -38,7 +38,7 @@ test("reports missing required fields", () => {
 
   assert.equal(result.ok, false);
   assert.match(result.errors.join("\n"), /PIC Pengaju/);
-  assert.match(result.errors.join("\n"), /Group ID Tujuan/);
+  assert.match(result.errors.join("\n"), /Nama Grup Tujuan/);
   assert.match(result.errors.join("\n"), /Jam Running/);
 });
 
