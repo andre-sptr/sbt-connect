@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, CheckCheck, Code2, FolderKanban, LogOut, Menu, MessageCircle, ScrollText, X } from "lucide-react";
+import { BarChart3, CheckCheck, Code2, FolderKanban, LogOut, Menu, MessageCircle, ScrollText, Shield, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -18,7 +18,18 @@ const navItems = [
   { href: "/dashboard/logs", label: "Logs", icon: ScrollText },
 ];
 
-function SidebarContent({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+const adminNavItems = [
+  { href: "/dashboard/admin/users", label: "Kelola User", icon: Shield },
+];
+
+type SidebarProps = {
+  pathname: string;
+  role: "admin" | "user";
+  username: string;
+  onNavigate?: () => void;
+};
+
+function SidebarContent({ pathname, role, username, onNavigate }: SidebarProps) {
   const router = useRouter();
 
   async function logout() {
@@ -30,15 +41,22 @@ function SidebarContent({ pathname, onNavigate }: { pathname: string; onNavigate
   return (
     <div className="flex h-full flex-col p-4">
       {/* Logo */}
-      <div className="mb-8 flex items-center gap-3">
+      <div className="mb-6 flex items-center gap-3">
         <img src="/icon.svg" alt="SBT Connect" className="h-10 w-10 rounded-lg" />
         <div>
-        <p className="font-semibold leading-tight text-foreground">SBT Connect</p>
-        <p className="text-xs text-muted-foreground">WAHA Bot Control</p>
+          <p className="font-semibold leading-tight text-foreground">SBT Connect</p>
+          <p className="text-xs text-muted-foreground">WAHA Bot Control</p>
         </div>
       </div>
+
+      {/* User info */}
+      <div className="mb-4 rounded-md border border-border/60 bg-muted/40 px-3 py-2">
+        <p className="text-xs font-medium text-foreground truncate">{username}</p>
+        <p className="text-xs text-muted-foreground capitalize">{role}</p>
+      </div>
+
       {/* Nav */}
-      <nav className="flex-1 space-y-1">
+      <nav className="flex-1 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
           return (
@@ -57,9 +75,43 @@ function SidebarContent({ pathname, onNavigate }: { pathname: string; onNavigate
             </Link>
           );
         })}
+
+        {/* Admin section */}
+        {role === "admin" && (
+          <>
+            <div className="pt-3 pb-1">
+              <p className="px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                Admin
+              </p>
+            </div>
+            {adminNavItems.map((item) => {
+              const active = pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onNavigate}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    active && "bg-red-700 text-white",
+                    !active && "text-muted-foreground hover:bg-secondary hover:text-secondary-foreground"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </>
+        )}
       </nav>
+
       {/* Logout */}
-      <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-secondary-foreground" onClick={logout}>
+      <Button
+        variant="ghost"
+        className="mt-2 w-full justify-start text-muted-foreground hover:text-secondary-foreground"
+        onClick={logout}
+      >
         <LogOut className="h-4 w-4" />
         Logout
       </Button>
@@ -67,7 +119,13 @@ function SidebarContent({ pathname, onNavigate }: { pathname: string; onNavigate
   );
 }
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
+type DashboardShellProps = {
+  children: React.ReactNode;
+  username: string;
+  role: "admin" | "user";
+};
+
+export function DashboardShell({ children, username, role }: DashboardShellProps) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -75,7 +133,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       {/* Sidebar Desktop */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r bg-card/95 shadow-soft backdrop-blur lg:block">
-        <SidebarContent pathname={pathname} />
+        <SidebarContent pathname={pathname} role={role} username={username} />
       </aside>
 
       {/* Mobile Drawer Overlay */}
@@ -100,7 +158,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         >
           <X className="h-5 w-5" />
         </button>
-        <SidebarContent pathname={pathname} onNavigate={() => setDrawerOpen(false)} />
+        <SidebarContent
+          pathname={pathname}
+          role={role}
+          username={username}
+          onNavigate={() => setDrawerOpen(false)}
+        />
       </aside>
 
       {/* Main content */}
@@ -124,7 +187,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <p className="text-sm font-semibold text-foreground">SBT Connect</p>
               </div>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-3">
+              <span className="hidden text-xs text-muted-foreground sm:block">{username}</span>
+              <ThemeToggle />
+            </div>
           </div>
         </header>
         <main className="px-4 py-6 lg:px-8">{children}</main>

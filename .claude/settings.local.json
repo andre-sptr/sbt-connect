@@ -14,7 +14,10 @@
       "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes, reset the database\" ./node_modules/.bin/prisma migrate reset --force)",
       "Bash(./node_modules/.bin/prisma db *)",
       "Bash(./node_modules/.bin/tsc --noEmit)",
-      "Bash(node --experimental-strip-types --test tests/user-service.test.mjs tests/auth.test.mjs)"
+      "Bash(node --experimental-strip-types --test tests/user-service.test.mjs tests/auth.test.mjs)",
+      "Bash(mkdir -p \"D:\\\\sbt-connect\\\\src\\\\app\\\\api\\\\admin\\\\users\\\\[id]\\\\reset-password\" \"D:\\\\sbt-connect\\\\src\\\\app\\\\api\\\\admin\\\\users\\\\[id]\\\\resend-credentials\" 2>&1; echo \"done\")",
+      "Bash(node --experimental-strip-types --test tests/*.test.mjs)",
+      "Bash(rtk git *)"
     ]
   }
 }

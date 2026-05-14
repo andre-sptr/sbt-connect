@@ -23,6 +23,15 @@ import {
   approveTelegramRequest,
   rejectTelegramRequest,
 } from "@/lib/telegram-service";
+import {
+  handleDaftarCommand,
+  parseUserRequestCallback,
+  handleUserRequestApprove,
+  setPendingUserReject,
+  getPendingUserReject,
+  clearPendingUserReject,
+  handleUserRequestRejectReason,
+} from "@/lib/telegram-account-flow";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -101,6 +110,7 @@ function helpText() {
     "/help  - tampilkan bantuan",
     "/start - tampilkan bantuan",
     "/batal - batalkan sesi request yang sedang berjalan",
+    "/daftar <username> - daftar akun dashboard",
     "",
     "Kirim format di bawah untuk mengajukan request laporan:",
     "",
@@ -189,7 +199,7 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  // ── callback_query — dari tombol inline keyboard ──────────────────────────
+  // ── callback_query ────────────────────────────────────────────────────────
   if (body.callback_query) {
     return handleCallbackQuery(body.callback_query);
   }
@@ -203,8 +213,21 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, skipped: true });
   }
 
-  // ── Cek apakah chat ini adalah admin chat yang sedang menunggu alasan reject
   const adminChatId = getTelegramAdminChatId();
+
+  // ── Admin: menunggu alasan reject UserRequest ─────────────────────────────
+  if (adminChatId && chatId === adminChatId) {
+    const pendingUserReject = getPendingUserReject(chatId);
+    if (pendingUserReject) {
+      clearPendingUserReject(chatId);
+      const reason = commandName(rawText) === "/skip" ? "" : rawText.trim();
+      const { replyText } = await handleUserRequestRejectReason(chatId, pendingUserReject.requestId, reason);
+      await safeReply(chatId, replyText);
+      return Response.json({ ok: true, action: "user_req_rejected" });
+    }
+  }
+
+  // ── Admin: menunggu alasan reject TelegramRequest ─────────────────────────
   if (adminChatId && chatId === adminChatId) {
     const pendingReject = getPendingReject(chatId);
     if (pendingReject) {
@@ -232,6 +255,30 @@ export async function POST(request: Request) {
     return Response.json({ ok: true });
   }
 
+  // ── /daftar <username> ────────────────────────────────────────────────────
+  if (command === "/daftar") {
+    const parts = rawText.trim().split(/\s+/);
+    const requestedUsername = parts[1]?.trim() ?? "";
+    if (!requestedUsername) {
+      await safeReply(
+        chatId,
+        "Format: /daftar <username>\nContoh: /daftar budi_santoso\n\nUsername harus 3–20 karakter (huruf, angka, underscore)."
+      );
+      return Response.json({ ok: true });
+    }
+
+    const meta = {
+      telegramUserId: message.from?.id != null ? String(message.from.id) : undefined,
+      username: message.from?.username,
+      firstName: message.from?.first_name,
+      lastName: message.from?.last_name,
+    };
+
+    const result = await handleDaftarCommand(chatId, requestedUsername, meta);
+    await safeReply(chatId, result.message);
+    return Response.json({ ok: true, action: result.action });
+  }
+
   // ── Cek conversation aktif ────────────────────────────────────────────────
   const activeStep = await getConversationStep(chatId);
 
@@ -253,7 +300,7 @@ export async function POST(request: Request) {
     }
   }
 
-  // ── Step: awaiting_invite ────────────────────────────────────────────────
+  // ── Step: awaiting_invite ─────────────────────────────────────────────────
   if (activeStep === "awaiting_invite") {
     const lower = rawText.toLowerCase().trim();
 
@@ -332,6 +379,36 @@ async function handleCallbackQuery(callbackQuery: TelegramCallbackQuery): Promis
     return Response.json({ ok: true, skipped: true });
   }
 
+  // ── User request callbacks (prefix: user_req_) ────────────────────────────
+  if (callbackQuery.data.startsWith("user_req_")) {
+    const parsed = parseUserRequestCallback(callbackQuery.data);
+    if (!parsed) {
+      await answerCallbackQuery(callbackQueryId, "Aksi tidak dikenali.");
+      return Response.json({ ok: true, skipped: true });
+    }
+
+    if (parsed.action === "approve") {
+      const { replyText } = await handleUserRequestApprove(callbackQueryId, parsed.requestId);
+      await safeReply(adminChatId, replyText);
+      return Response.json({ ok: true, action: "user_req_approved" });
+    }
+
+    if (parsed.action === "reject") {
+      await answerCallbackQuery(callbackQueryId, "Ketik alasan penolakan.");
+      setPendingUserReject(adminChatId, parsed.requestId, callbackQueryId);
+      await safeReply(
+        adminChatId,
+        [
+          `Tolak permintaan akun #${parsed.requestId}`,
+          "",
+          "Ketik alasan penolakan, atau kirim /skip untuk menolak tanpa alasan.",
+        ].join("\n")
+      );
+      return Response.json({ ok: true, action: "awaiting_user_req_reject_reason" });
+    }
+  }
+
+  // ── Project request callbacks (approve: / reject:) ────────────────────────
   const parsed = parseCallbackData(callbackQuery.data);
   if (!parsed) {
     await answerCallbackQuery(callbackQueryId, "Aksi tidak dikenali.");
@@ -340,12 +417,10 @@ async function handleCallbackQuery(callbackQuery: TelegramCallbackQuery): Promis
 
   const { action, requestId } = parsed;
 
-  // ── Approve ──────────────────────────────────────────────────────────────
   if (action === "approve") {
     try {
       await answerCallbackQuery(callbackQueryId, "Memproses approval...");
       await approveTelegramRequest(requestId);
-      // edit message & feedback ke requester sudah dilakukan di telegram-service
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Unknown error";
       await safeReply(adminChatId, `❌ Gagal approve request #${requestId}:\n${msg}`);
@@ -353,7 +428,6 @@ async function handleCallbackQuery(callbackQuery: TelegramCallbackQuery): Promis
     return Response.json({ ok: true, action: "approved" });
   }
 
-  // ── Reject — minta alasan ────────────────────────────────────────────────
   if (action === "reject") {
     await answerCallbackQuery(callbackQueryId, "Ketik alasan penolakan.");
     setPendingReject(adminChatId, requestId, callbackQueryId);
@@ -373,7 +447,7 @@ async function handleCallbackQuery(callbackQuery: TelegramCallbackQuery): Promis
 }
 
 // ---------------------------------------------------------------------------
-// Admin reject reason handler
+// Admin reject reason handler (TelegramRequest)
 // ---------------------------------------------------------------------------
 
 async function handleAdminRejectReason(
