@@ -8,8 +8,8 @@ const storageDir = path.join(process.cwd(), "storage", "thumbnails");
 type Context = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: Context) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const { id } = await context.params;
   const runId = parseInt(id, 10);

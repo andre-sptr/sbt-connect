@@ -1,12 +1,3 @@
-export const staticLogin = {
-  get username() {
-    return getRequiredEnv("LOGIN_USERNAME");
-  },
-  get password() {
-    return getRequiredEnv("LOGIN_PASSWORD");
-  },
-};
-
 function getRequiredEnv(name: string) {
   const value = process.env[name];
   if (!value) {

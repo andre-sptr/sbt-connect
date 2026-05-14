@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 type Context = { params: Promise<{ id: string }> };
 
 export async function GET(request: Request, context: Context) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const { id } = await context.params;
   const jobId = parseInt(id, 10);

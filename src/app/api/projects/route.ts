@@ -7,14 +7,18 @@ import { reloadScheduler } from "@/lib/scheduler";
 const PAGE_SIZE = 10;
 
 export async function GET(request: Request) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
+
+  const isAdmin = session.role === "admin";
 
   const { searchParams } = new URL(request.url);
   const search = searchParams.get("search")?.trim();
   const requestedPage = searchParams.get("page");
   const page = Math.max(1, parseInt(requestedPage || "1", 10) || 1);
-  const where = search
+
+  const ownerFilter = isAdmin ? {} : { createdByUserId: session.userId };
+  const searchFilter = search
     ? {
         OR: [
           { name: { contains: search } },
@@ -24,10 +28,13 @@ export async function GET(request: Request) {
       }
     : undefined;
 
+  const where = { ...ownerFilter, ...searchFilter };
+
   if (!requestedPage) {
     const projects = await prisma.project.findMany({
       where,
       orderBy: { updatedAt: "desc" },
+      include: { createdBy: { select: { username: true } } },
     });
     return Response.json({ projects: projects.map(projectToDto) });
   }
@@ -40,6 +47,7 @@ export async function GET(request: Request) {
       orderBy: { updatedAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
+      include: { createdBy: { select: { username: true } } },
     }),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -59,8 +67,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const json = await request.json().catch(() => null);
   const parsed = projectSchema.safeParse(json);
@@ -71,7 +79,12 @@ export async function POST(request: Request) {
     return Response.json({ error: "Cron expression tidak valid." }, { status: 400 });
   }
 
-  const project = await prisma.project.create({ data: projectData(parsed.data) });
+  const project = await prisma.project.create({
+    data: {
+      ...projectData(parsed.data),
+      createdByUserId: session.userId,
+    },
+  });
   await reloadScheduler();
   return Response.json({ project: projectToDto(project) }, { status: 201 });
 }

@@ -9,8 +9,8 @@ function parseId(id: string) {
 }
 
 export async function POST(_request: Request, context: Context) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const { id } = await context.params;
   const requestId = parseId(id);

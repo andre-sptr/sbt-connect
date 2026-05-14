@@ -5,8 +5,8 @@ import { telegramRequestToDto } from "@/lib/telegram-service";
 const PAGE_SIZE = 20;
 
 export async function GET(request: Request) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const { searchParams } = new URL(request.url);
   const requestedPage = searchParams.get("page");

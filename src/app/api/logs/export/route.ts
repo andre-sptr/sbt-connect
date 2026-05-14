@@ -2,8 +2,8 @@ import { requireApiSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get("projectId");

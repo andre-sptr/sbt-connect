@@ -4,8 +4,8 @@ import { requireApiSession } from "@/lib/auth";
 type Context = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: Context) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const { id } = await context.params;
   const projectId = parseInt(id, 10);
@@ -15,6 +15,11 @@ export async function GET(_request: Request, context: Context) {
 
   const project = await prisma.project.findUnique({ where: { id: projectId } });
   if (!project) return Response.json({ error: "Project tidak ditemukan." }, { status: 404 });
+
+  // Ownership check
+  if (session.role !== "admin" && project.createdByUserId !== session.userId) {
+    return Response.json({ error: "Project tidak ditemukan." }, { status: 404 });
+  }
 
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);

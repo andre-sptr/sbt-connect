@@ -2,7 +2,19 @@
   "permissions": {
     "allow": [
       "Bash(npx prisma *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(~/.claude/skills/gstack/bin/gstack-brain-sync --discover-new)",
+      "Bash(~/.claude/skills/gstack/bin/gstack-brain-sync --once)",
+      "Bash(~/.claude/skills/gstack/bin/gstack-learnings-log '{\"skill\":\"office-hours\",\"type\":\"architecture\",\"key\":\"multi-user-auth-nextjs-telegram\",\"insight\":\"Multi-user auth untuk Next.js app dengan Telegram approval: pisahkan UserRequest dari domain model lain, gunakan requireAdminPage\\(\\)/requireAdminApi\\(\\) terpisah, verifySessionToken lookup by userId bukan username, bcrypt hanya di Node runtime bukan edge.\",\"confidence\":8,\"source\":\"observed\",\"files\":[\"src/lib/auth.ts\",\"prisma/schema.prisma\"]}')",
+      "Bash(npm install *)",
+      "Bash(rtk ls *)",
+      "Bash(rtk grep *)",
+      "Bash(rtk prisma *)",
+      "Bash(./node_modules/.bin/prisma migrate *)",
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes, reset the database\" ./node_modules/.bin/prisma migrate reset --force)",
+      "Bash(./node_modules/.bin/prisma db *)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(node --experimental-strip-types --test tests/user-service.test.mjs tests/auth.test.mjs)"
     ]
   }
 }

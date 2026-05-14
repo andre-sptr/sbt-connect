@@ -2,8 +2,8 @@ import { requireApiSession } from "@/lib/auth";
 import { installPythonDependency, listPythonDependencies } from "@/lib/python-venv";
 
 export async function GET() {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   try {
     return Response.json(await listPythonDependencies());
@@ -16,8 +16,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const body = (await request.json().catch(() => null)) as { packageSpec?: string } | null;
   if (!body?.packageSpec) {

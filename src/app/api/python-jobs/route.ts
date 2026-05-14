@@ -16,8 +16,8 @@ function getUploadedFile(formData: FormData) {
 }
 
 export async function GET(request: Request) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const { searchParams } = new URL(request.url);
   const search = searchParams.get("search")?.trim();
@@ -64,8 +64,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const formData = await request.formData().catch(() => null);
   if (!formData) return Response.json({ error: "Payload upload tidak valid." }, { status: 400 });

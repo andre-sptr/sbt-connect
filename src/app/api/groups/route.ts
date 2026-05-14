@@ -5,8 +5,8 @@ import { fetchWahaGroupsFromApi } from "@/lib/waha";
 const PAGE_SIZE = 20;
 
 export async function GET(request: Request) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const { searchParams } = new URL(request.url);
   const search = searchParams.get("search")?.trim();
@@ -38,8 +38,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST() {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   try {
     const groups = filterAllowedGroups(await fetchWahaGroupsFromApi());

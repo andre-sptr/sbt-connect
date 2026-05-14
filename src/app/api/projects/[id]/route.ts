@@ -11,26 +11,39 @@ function parseId(id: string) {
   return Number.isInteger(numericId) ? numericId : null;
 }
 
+async function resolveProject(projectId: number, userId: number, isAdmin: boolean) {
+  const project = await prisma.project.findUnique({ where: { id: projectId } });
+  if (!project) return { error: "Project tidak ditemukan.", status: 404 as const };
+  if (!isAdmin && project.createdByUserId !== userId) {
+    return { error: "Project tidak ditemukan.", status: 404 as const }; // hide existence
+  }
+  return { project };
+}
+
 export async function GET(_request: Request, context: Context) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const { id } = await context.params;
   const projectId = parseId(id);
   if (!projectId) return Response.json({ error: "ID project tidak valid." }, { status: 400 });
 
-  const project = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!project) return Response.json({ error: "Project tidak ditemukan." }, { status: 404 });
-  return Response.json({ project: projectToDto(project) });
+  const result = await resolveProject(projectId, session.userId, session.role === "admin");
+  if ("error" in result) return Response.json({ error: result.error }, { status: result.status });
+
+  return Response.json({ project: projectToDto(result.project) });
 }
 
 export async function PUT(request: Request, context: Context) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const { id } = await context.params;
   const projectId = parseId(id);
   if (!projectId) return Response.json({ error: "ID project tidak valid." }, { status: 400 });
+
+  const result = await resolveProject(projectId, session.userId, session.role === "admin");
+  if ("error" in result) return Response.json({ error: result.error }, { status: result.status });
 
   const json = await request.json().catch(() => null);
   const parsed = projectSchema.safeParse(json);
@@ -41,18 +54,24 @@ export async function PUT(request: Request, context: Context) {
     return Response.json({ error: "Cron expression tidak valid." }, { status: 400 });
   }
 
-  const project = await prisma.project.update({ where: { id: projectId }, data: projectData(parsed.data) });
+  const project = await prisma.project.update({
+    where: { id: projectId },
+    data: projectData(parsed.data),
+  });
   await reloadScheduler();
   return Response.json({ project: projectToDto(project) });
 }
 
 export async function DELETE(_request: Request, context: Context) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const { id } = await context.params;
   const projectId = parseId(id);
   if (!projectId) return Response.json({ error: "ID project tidak valid." }, { status: 400 });
+
+  const result = await resolveProject(projectId, session.userId, session.role === "admin");
+  if ("error" in result) return Response.json({ error: result.error }, { status: result.status });
 
   await prisma.project.delete({ where: { id: projectId } });
   await reloadScheduler();

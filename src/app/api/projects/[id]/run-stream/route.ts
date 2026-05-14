@@ -4,13 +4,20 @@ import { prisma } from "@/lib/prisma";
 type Context = { params: Promise<{ id: string }> };
 
 export async function GET(request: Request, context: Context) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const { id } = await context.params;
   const projectId = parseInt(id, 10);
   if (!Number.isInteger(projectId)) {
     return new Response("ID tidak valid.", { status: 400 });
+  }
+
+  // Ownership check
+  const project = await prisma.project.findUnique({ where: { id: projectId } });
+  if (!project) return new Response("Project tidak ditemukan.", { status: 404 });
+  if (session.role !== "admin" && project.createdByUserId !== session.userId) {
+    return new Response("Project tidak ditemukan.", { status: 404 });
   }
 
   const run = await prisma.run.findFirst({

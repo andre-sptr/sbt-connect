@@ -3,8 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { ensureScheduler } from "@/lib/scheduler";
 
 export async function GET() {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
   await ensureScheduler();
 
   const [totalProjects, activeProjects, latestRuns, failedRuns] = await Promise.all([

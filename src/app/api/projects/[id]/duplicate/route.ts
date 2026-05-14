@@ -7,13 +7,19 @@ import { reloadScheduler } from "@/lib/scheduler";
 type Context = { params: Promise<{ id: string }> };
 
 export async function POST(_request: Request, context: Context) {
-  const unauthorized = await requireApiSession();
-  if (unauthorized) return unauthorized;
+  const session = await requireApiSession();
+  if (session instanceof Response) return session;
 
   const { id } = await context.params;
   const projectId = Number(id);
+
   const source = await prisma.project.findUnique({ where: { id: projectId } });
   if (!source) return Response.json({ error: "Project tidak ditemukan." }, { status: 404 });
+
+  // Ownership check
+  if (session.role !== "admin" && source.createdByUserId !== session.userId) {
+    return Response.json({ error: "Project tidak ditemukan." }, { status: 404 });
+  }
 
   const project = await prisma.project.create({
     data: {
@@ -27,6 +33,7 @@ export async function POST(_request: Request, context: Context) {
       timezone: source.timezone,
       enabled: false,
       nextRunAt: getNextRunAt(source.cronExpression, source.timezone),
+      createdByUserId: session.userId,
     },
   });
   await reloadScheduler();
