@@ -57,7 +57,7 @@ export function parseProjectCommandFields(text: string): ProjectCommandFields {
 export function formatProjectCommandExample() {
   return [
     "!project",
-    "Nama = Sales Daily",
+    "Nama = Report Daily",
     "Group ID = 120363xxxxxxxx@g.us",
     "URL = https://docs.google.com/spreadsheets/d/xxxx/edit",
     "GID = 0",

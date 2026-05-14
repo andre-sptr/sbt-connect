@@ -214,24 +214,24 @@ export async function handleHelp({ chatId }: CommandContext) {
   const isSuperAdmin = hasRole(chatId, "super_admin");
 
   const operatorCommands = [
-    "!help              - tampilkan bantuan command",
-    "!status            - daftar project aktif & jadwal berikutnya",
-    "!schedule          - jadwal project hari ini",
-    "!laporan           - jalankan project dengan jadwal terdekat",
-    "!run [nama]        - jalankan project berdasarkan nama",
-    "!screenshot [nama] - ambil screenshot tanpa kirim WA",
-    "!retry [nama]      - ulangi run terakhir yang gagal",
-    "!info [nama]       - detail project",
-    "!history [nama]    - riwayat 5 run terakhir",
-    "!pause [nama]      - nonaktifkan project sementara",
-    "!resume [nama]     - aktifkan kembali project",
-    "!group             - tampilkan daftar cached group",
+    "!help",
+    "!status",
+    "!schedule",
+    "!laporan",
+    "!run [nama]",
+    "!screenshot [nama]",
+    "!retry [nama]",
+    "!info [nama]",
+    "!history [nama]",
+    "!pause [nama]",
+    "!resume [nama]",
+    "!group",
   ];
 
   const superAdminCommands = [
-    "!project           - buat project baru (format multiline)",
-    "!edit [nama] [field] = [value] - edit field project",
-    "!delete [nama]     - hapus project",
+    "!project",
+    "!edit [nama] [field] = [value]",
+    "!delete [nama]",
     "",
     "Field !edit: cron, caption, name, enabled, retries",
   ];
