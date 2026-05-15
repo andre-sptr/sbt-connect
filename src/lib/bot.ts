@@ -129,7 +129,13 @@ async function captureSheetScreenshot(input: {
     });
     if (fullTableHeight > 1500) {
       await page.setViewportSize({ width: 3000, height: fullTableHeight + 200 });
-      await page.waitForTimeout(1000); // allow re-render at new viewport size
+      // Wait for Google Sheets to finish lazy-loading rows into the expanded
+      // viewport. A fixed 1s was too short for large tables (virtual scrolling
+      // causes a 30s locator.screenshot timeout). Re-check the selector and
+      // add a proportional delay based on height.
+      await page.waitForSelector("table.waffle:visible", { timeout: 30000 });
+      const extraWait = Math.min(Math.floor((fullTableHeight - 1500) / 1000) * 500 + 1500, 6000);
+      await page.waitForTimeout(extraWait);
     }
 
     await page.evaluate(() => {
@@ -150,7 +156,7 @@ async function captureSheetScreenshot(input: {
         }
       });
     });
-    await page.locator("table.waffle:visible").first().screenshot({ path: filePath });
+    await page.locator("table.waffle:visible").first().screenshot({ path: filePath, timeout: 60000 });
     await optimizeImage(filePath, input.runId, input.projectId);
     await writeLog({ projectId: input.projectId, runId: input.runId, level: "success", message: "Screenshot berhasil dibuat." });
     return filePath;

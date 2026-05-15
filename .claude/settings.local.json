@@ -19,7 +19,9 @@
       "Bash(node --experimental-strip-types --test tests/*.test.mjs)",
       "Bash(rtk git *)",
       "Bash(xargs grep -l \"redirect\")",
-      "Bash(rtk tsc *)"
+      "Bash(rtk tsc *)",
+      "Skill(investigate)",
+      "Skill(investigate:*)"
     ]
   }
 }
