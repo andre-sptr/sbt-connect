@@ -143,11 +143,40 @@ async function captureSheetScreenshot(input: {
     message: `Mengambil screenshot range ${input.cellRange}.`,
   });
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--disable-software-rasterizer",
+      "--single-process",
+      "--no-zygote",
+    ],
+  });
   try {
     const context = await browser.newContext({ viewport: { width: 3000, height: 1500 } });
     const page = await context.newPage();
-    await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 90000 });
+
+    // Retry page.goto up to 2 times — VPS network can be flaky with Google
+    const maxGotoAttempts = 2;
+    for (let attempt = 1; attempt <= maxGotoAttempts; attempt++) {
+      try {
+        await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 90000 });
+        break;
+      } catch (gotoErr) {
+        if (attempt === maxGotoAttempts) throw gotoErr;
+        await writeLog({
+          projectId: input.projectId,
+          runId: input.runId,
+          level: "warning",
+          message: `page.goto timeout (attempt ${attempt}/${maxGotoAttempts}), retrying...`,
+        });
+        await page.waitForTimeout(3000);
+      }
+    }
+
     await page.waitForSelector("table.waffle:visible", { timeout: 60000 });
     await page.waitForTimeout(3000);
 
