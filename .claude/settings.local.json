@@ -25,7 +25,9 @@
       "Bash(xargs grep -l \"Queue\\\\|Worker\\\\|Bull\\\\|RabbitMQ\\\\|concurrency\\\\|max.*concurrent\\\\|semaphore\\\\|mutex\")",
       "Bash(xargs grep -l \"browser\\\\|chromium\\\\|playwright\")",
       "Bash(rtk find *)",
-      "Bash(node -e \"const ts = require\\('typescript'\\); const config = ts.readConfigFile\\('tsconfig.json', ts.sys.readFile\\).config; const parsed = ts.parseJsonConfigFileContent\\(config, ts.sys, '.'\\); const program = ts.createProgram\\(parsed.fileNames, parsed.options\\); const diagnostics = ts.getPreEmitDiagnostics\\(program\\); diagnostics.forEach\\(d => { const file = d.file ? d.file.fileName + ':' + d.file.getLineAndCharacterOfPosition\\(d.start\\).line : ''; console.log\\(file, ts.flattenDiagnosticMessageText\\(d.messageText, '\\\\n'\\)\\); }\\); console.log\\('Total errors:', diagnostics.length\\);\")"
+      "Bash(node -e \"const ts = require\\('typescript'\\); const config = ts.readConfigFile\\('tsconfig.json', ts.sys.readFile\\).config; const parsed = ts.parseJsonConfigFileContent\\(config, ts.sys, '.'\\); const program = ts.createProgram\\(parsed.fileNames, parsed.options\\); const diagnostics = ts.getPreEmitDiagnostics\\(program\\); diagnostics.forEach\\(d => { const file = d.file ? d.file.fileName + ':' + d.file.getLineAndCharacterOfPosition\\(d.start\\).line : ''; console.log\\(file, ts.flattenDiagnosticMessageText\\(d.messageText, '\\\\n'\\)\\); }\\); console.log\\('Total errors:', diagnostics.length\\);\")",
+      "Bash(Get-ChildItem -Path \"D:\\\\Website\\\\sbt-connect\" -Directory)",
+      "Bash(Select-Object Name)"
     ]
   }
 }

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, Code2, FolderKanban, LogOut, Menu, MessageCircle, ScrollText, Shield, X } from "lucide-react";
+import { BarChart3, Code2, FolderKanban, LogOut, Menu, MessageCircle, Radio, ScrollText, Shield, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -19,6 +19,7 @@ const navItems = [
 
 const adminNavItems = [
   { href: "/dashboard/admin/users", label: "Kelola User", icon: Shield },
+  { href: "https://wa.sbtconnect.online/", label: "WA Broadcast", icon: Radio, external: true },
 ];
 
 type SidebarProps = {
@@ -84,12 +85,15 @@ function SidebarContent({ pathname, role, username, onNavigate }: SidebarProps) 
               </p>
             </div>
             {adminNavItems.map((item) => {
-              const active = pathname.startsWith(item.href);
+              const active = !item.external && pathname.startsWith(item.href);
+              const linkProps = item.external
+                ? { target: "_blank" as const, rel: "noopener noreferrer" }
+                : { onClick: onNavigate };
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={onNavigate}
+                  {...linkProps}
                   className={cn(
                     "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                     active && "bg-red-700 text-white",

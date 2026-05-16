@@ -28,6 +28,10 @@ export function enqueueBrowser<T>(fn: () => Promise<T>): Promise<T> {
   });
 }
 
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function drainBrowserQueue() {
   while (browserRunning < MAX_CONCURRENT_BROWSERS && browserQueue.length > 0) {
     const job = browserQueue.shift()!;
@@ -35,7 +39,11 @@ function drainBrowserQueue() {
     job
       .fn()
       .then(job.resolve, job.reject)
-      .finally(() => {
+      .finally(async () => {
+        // Cooldown between browser jobs to let VPS reclaim memory
+        if (browserQueue.length > 0) {
+          await delay(5000);
+        }
         browserRunning--;
         drainBrowserQueue();
       });
@@ -151,19 +159,26 @@ async function captureSheetScreenshot(input: {
       "--disable-dev-shm-usage",
       "--disable-gpu",
       "--disable-software-rasterizer",
-      "--single-process",
       "--no-zygote",
+      "--disable-background-networking",
+      "--disable-default-apps",
+      "--disable-extensions",
+      "--disable-sync",
+      "--disable-translate",
+      "--mute-audio",
+      "--no-first-run",
+      "--disable-features=site-per-process",
     ],
   });
   try {
     const context = await browser.newContext({ viewport: { width: 3000, height: 1500 } });
-    const page = await context.newPage();
+    let page = await context.newPage();
 
-    // Retry page.goto up to 2 times — VPS network can be flaky with Google
-    const maxGotoAttempts = 2;
+    // Retry page.goto up to 3 times — VPS network can be flaky with Google
+    const maxGotoAttempts = 3;
     for (let attempt = 1; attempt <= maxGotoAttempts; attempt++) {
       try {
-        await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 90000 });
+        await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
         break;
       } catch (gotoErr) {
         if (attempt === maxGotoAttempts) throw gotoErr;
@@ -171,9 +186,12 @@ async function captureSheetScreenshot(input: {
           projectId: input.projectId,
           runId: input.runId,
           level: "warning",
-          message: `page.goto timeout (attempt ${attempt}/${maxGotoAttempts}), retrying...`,
+          message: `page.goto timeout (attempt ${attempt}/${maxGotoAttempts}), retrying in 5s...`,
         });
-        await page.waitForTimeout(3000);
+        // Close and recreate page to get a fresh connection
+        await page.close();
+        page = await context.newPage();
+        await page.waitForTimeout(5000);
       }
     }
 
@@ -221,7 +239,11 @@ async function captureSheetScreenshot(input: {
     await writeLog({ projectId: input.projectId, runId: input.runId, level: "success", message: "Screenshot berhasil dibuat." });
     return filePath;
   } finally {
-    await browser.close();
+    try {
+      await browser.close();
+    } catch {
+      // browser may already be closed
+    }
   }
 }
 
