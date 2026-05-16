@@ -11,6 +11,37 @@ import { notifyAdmin } from "@/lib/notify-admin";
 const storageDir = path.join(process.cwd(), "storage", "screenshots");
 const thumbnailDir = path.join(process.cwd(), "storage", "thumbnails");
 
+// ---------------------------------------------------------------------------
+// Browser execution queue — only one Chromium instance at a time.
+// Prevents RAM exhaustion and page.goto timeouts when multiple bots fire
+// concurrently from cron or manual triggers.
+// ---------------------------------------------------------------------------
+type QueuedJob<T> = { fn: () => Promise<T>; resolve: (v: T) => void; reject: (err: unknown) => void };
+const browserQueue: QueuedJob<unknown>[] = [];
+let browserRunning = 0;
+const MAX_CONCURRENT_BROWSERS = 1;
+
+export function enqueueBrowser<T>(fn: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    browserQueue.push({ fn, resolve: resolve as (v: unknown) => void, reject });
+    drainBrowserQueue();
+  });
+}
+
+function drainBrowserQueue() {
+  while (browserRunning < MAX_CONCURRENT_BROWSERS && browserQueue.length > 0) {
+    const job = browserQueue.shift()!;
+    browserRunning++;
+    job
+      .fn()
+      .then(job.resolve, job.reject)
+      .finally(() => {
+        browserRunning--;
+        drainBrowserQueue();
+      });
+  }
+}
+
 type BotAction = "full" | "screenshot" | "send" | "dry-run";
 
 function todayId() {
@@ -235,13 +266,18 @@ export async function runProject(projectId: number, action: BotAction = "full") 
 
   try {
     await writeLog({ projectId, runId: run.id, message: `Run ${action} dimulai.` });
-    screenshotPath = await captureSheetScreenshot({
-      projectId,
-      runId: run.id,
-      spreadsheetUrl: project.spreadsheetUrl,
-      gid: project.gid,
-      cellRange: project.cellRange,
-    });
+    if (browserQueue.length > 0) {
+      await writeLog({ projectId, runId: run.id, level: "info", message: `Menunggu antrian (${browserQueue.length} job di depan).` });
+    }
+    screenshotPath = await enqueueBrowser(() =>
+      captureSheetScreenshot({
+        projectId,
+        runId: run.id,
+        spreadsheetUrl: project.spreadsheetUrl,
+        gid: project.gid,
+        cellRange: project.cellRange,
+      })
+    );
 
     const groupIds = safeJsonArray(project.groupIds);
 
