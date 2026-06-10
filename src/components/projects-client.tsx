@@ -12,6 +12,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { FeedbackMessage } from "@/components/feedback-message";
 import { SkeletonLines } from "@/components/ui/skeleton";
+import { createProjectRunRequest } from "@/lib/project-run-request";
 import { formatDateTime } from "@/lib/utils";
 import type { ProjectDto } from "@/types/dashboard";
 
@@ -41,8 +42,10 @@ export function ProjectsClient() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<ProjectDto | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [runningProjectId, setRunningProjectId] = useState<number | null>(null);
 
   const load = useCallback(async function load() {
     setLoading(true);
@@ -83,6 +86,27 @@ export function ProjectsClient() {
     load();
   }
 
+  async function runProject(project: ProjectDto) {
+    setRunningProjectId(project.id);
+    setError("");
+    setMessage("");
+    try {
+      const { url, init } = createProjectRunRequest(project.id);
+      const response = await fetch(url, init);
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(json.error || `Run ${project.name} gagal.`);
+        return;
+      }
+      setMessage(`Run ${project.name} berhasil dijalankan.`);
+      load();
+    } catch {
+      setError(`Run ${project.name} gagal.`);
+    } finally {
+      setRunningProjectId(null);
+    }
+  }
+
   async function toggle(project: ProjectDto) {
     await fetch(`/api/projects/${project.id}`, {
       method: "PUT",
@@ -115,6 +139,7 @@ export function ProjectsClient() {
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input className="pl-9" placeholder="Cari nama, URL, atau GID..." value={search} onChange={(event) => updateSearch(event.target.value)} />
           </div>
+          {message ? <FeedbackMessage type="success">{message}</FeedbackMessage> : null}
           {error ? <FeedbackMessage type="error">{error}</FeedbackMessage> : null}
           <div className="rounded-md border max-[900px]:space-y-3 max-[900px]:border-0 min-[901px]:overflow-hidden">
             <div className="table-grid bg-muted px-4 py-3 text-xs font-semibold uppercase text-muted-foreground max-[900px]:hidden">
@@ -167,6 +192,16 @@ export function ProjectsClient() {
                   onClick={(event) => event.stopPropagation()}
                   onKeyDown={(event) => event.stopPropagation()}
                 >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-label={`Run ${project.name}`}
+                    disabled={runningProjectId !== null}
+                    onClick={() => runProject(project)}
+                  >
+                    <Play className="h-4 w-4" />
+                    {runningProjectId === project.id ? "Running..." : "Run"}
+                  </Button>
                   <Button variant="outline" size="icon" title="Pause/resume" aria-label={project.enabled ? `Pause ${project.name}` : `Resume ${project.name}`} onClick={() => toggle(project)}>
                     {project.enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   </Button>
