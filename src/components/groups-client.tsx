@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Copy, Plus, RefreshCw, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
+import { FeedbackMessage } from "@/components/feedback-message";
+import { SkeletonLines } from "@/components/ui/skeleton";
 import type { ProjectDto } from "@/types/dashboard";
 
 type WahaGroup = {
@@ -41,16 +44,16 @@ export function GroupsClient() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  async function loadProjects() {
+  const loadProjects = useCallback(async function loadProjects() {
     const response = await fetch("/api/projects", { cache: "no-store" });
     if (response.ok) {
       const json = await response.json();
       setProjects(json.projects);
-      if (!selectedProject && json.projects[0]) setSelectedProject(String(json.projects[0].id));
+      setSelectedProject((current) => current || (json.projects[0] ? String(json.projects[0].id) : ""));
     }
-  }
+  }, []);
 
-  async function loadGroups() {
+  const loadGroups = useCallback(async function loadGroups() {
     setLoading(true);
     setError("");
     const query = new URLSearchParams();
@@ -65,7 +68,7 @@ export function GroupsClient() {
     }
     setGroups(json.groups);
     if (json.pagination) setPagination(json.pagination);
-  }
+  }, [page, search]);
 
   async function refreshGroups() {
     setLoading(true);
@@ -84,12 +87,12 @@ export function GroupsClient() {
 
   useEffect(() => {
     loadProjects();
-  }, []);
+  }, [loadProjects]);
 
   useEffect(() => {
     const timer = window.setTimeout(loadGroups, 300);
     return () => window.clearTimeout(timer);
-  }, [search, page]);
+  }, [loadGroups]);
 
   function updateSearch(value: string) {
     setSearch(value);
@@ -121,10 +124,10 @@ export function GroupsClient() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal text-foreground">Groups</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Cari grup yang sedang join di sbtconnect, lalu copy atau tambahkan ke project.</p>
-      </div>
+      <DashboardPageHeader
+        title="Groups"
+        description="Cari grup yang sedang join di sbtconnect, lalu copy atau tambahkan ke project."
+      />
       <Card>
         <CardContent className="space-y-4 pt-5">
           <div className="grid gap-3 lg:grid-cols-[1fr_280px_auto]">
@@ -146,10 +149,14 @@ export function GroupsClient() {
               Refresh
             </Button>
           </div>
-          {message ? <p className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-200">{message}</p> : null}
-          {error ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{error}</p> : null}
+          {message ? <FeedbackMessage type="success">{message}</FeedbackMessage> : null}
+          {error ? <FeedbackMessage type="error">{error}</FeedbackMessage> : null}
           <div className="divide-y rounded-md border">
-            {loading ? <p className="p-4 text-sm text-muted-foreground">Memuat grup...</p> : null}
+            {loading ? (
+              <div className="p-4">
+                <SkeletonLines count={4} />
+              </div>
+            ) : null}
             {!loading && groups.length === 0 ? <p className="p-4 text-sm text-muted-foreground">Belum ada cache grup. Klik Refresh untuk mengambil dari WAHA dan menyimpannya ke database.</p> : null}
             {groups.map((group) => (
               <div key={group.id} className="grid gap-3 p-4 md:grid-cols-[1fr_auto] md:items-center">

@@ -26,6 +26,7 @@ export function ThemeToggle() {
       onClick={toggle}
       className="rounded-md border border-input bg-background p-2 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
       title={isDark ? "Mode Terang" : "Mode Gelap"}
+      aria-label={isDark ? "Aktifkan mode terang" : "Aktifkan mode gelap"}
     >
       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
     </button>

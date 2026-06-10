@@ -6,6 +6,13 @@ function getRequiredEnv(name: string) {
   return value;
 }
 
+const MIN_AUTH_SECRET_LENGTH = 32;
+const INVALID_AUTH_SECRETS = new Set([
+  "development-only-auth-secret",
+  "ganti-dengan-hasil-openssl-rand-base64-32",
+  "ganti-dengan-hasil-openssl",
+]);
+
 export function getWahaConfig() {
   const url = process.env.WAHA_URL;
   const session = process.env.WAHA_SESSION;
@@ -31,7 +38,24 @@ export function getTelegramConfig() {
 }
 
 export function getAuthSecret() {
-  return process.env.AUTH_SECRET || "development-only-auth-secret";
+  const secret = process.env.AUTH_SECRET?.trim();
+  if (!secret || INVALID_AUTH_SECRETS.has(secret) || secret.length < MIN_AUTH_SECRET_LENGTH) {
+    throw new Error("AUTH_SECRET must be configured server-side with a strong non-placeholder value.");
+  }
+  return secret;
+}
+
+export function getWahaWebhookSecret() {
+  return getRequiredEnv("WAHA_WEBHOOK_SECRET");
+}
+
+export function getPublicBaseUrl() {
+  const value = getRequiredEnv("NEXT_PUBLIC_BASE_URL");
+  try {
+    return new URL(value).origin;
+  } catch {
+    throw new Error("NEXT_PUBLIC_BASE_URL must be a valid absolute URL.");
+  }
 }
 
 /**

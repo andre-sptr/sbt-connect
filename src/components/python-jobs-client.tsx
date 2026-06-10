@@ -2,12 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Copy, Pause, Play, Plus, Search, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
+import { FeedbackMessage } from "@/components/feedback-message";
+import { SkeletonLines } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/utils";
 import type { PythonJobDto } from "@/types/dashboard";
 
@@ -37,8 +41,10 @@ export function PythonJobsClient() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<PythonJobDto | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  async function load() {
+  const load = useCallback(async function load() {
     setLoading(true);
     setError("");
     const query = new URLSearchParams();
@@ -53,21 +59,23 @@ export function PythonJobsClient() {
     const json: { jobs: PythonJobDto[]; pagination?: PythonJobsPagination } = await response.json();
     setJobs(json.jobs);
     if (json.pagination) setPagination(json.pagination);
-  }
+  }, [page, search]);
 
   useEffect(() => {
     const timer = window.setTimeout(load, 250);
     return () => window.clearTimeout(timer);
-  }, [search, page]);
+  }, [load]);
 
   function updateSearch(value: string) {
     setSearch(value);
     setPage(1);
   }
 
-  async function remove(id: number) {
-    if (!window.confirm("Hapus Python job ini?")) return;
-    await fetch(`/api/python-jobs/${id}`, { method: "DELETE" });
+  async function remove(job: PythonJobDto) {
+    setDeleting(true);
+    await fetch(`/api/python-jobs/${job.id}`, { method: "DELETE" });
+    setDeleting(false);
+    setDeleteTarget(null);
     load();
   }
 
@@ -91,20 +99,16 @@ export function PythonJobsClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-foreground">Python Jobs</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {activeCount} job aktif dari {pagination.total || jobs.length} job.
-          </p>
-        </div>
-        <Button asChild>
+      <DashboardPageHeader
+        title="Python Jobs"
+        description={`${activeCount} job aktif dari ${pagination.total || jobs.length} job.`}
+        actions={<Button asChild>
           <Link href="/dashboard/python-jobs/new">
             <Plus className="h-4 w-4" />
             Buat Job
           </Link>
-        </Button>
-      </div>
+        </Button>}
+      />
 
       <Card>
         <CardContent className="pt-5">
@@ -112,7 +116,7 @@ export function PythonJobsClient() {
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input className="pl-9" placeholder="Cari nama, file, atau cron..." value={search} onChange={(event) => updateSearch(event.target.value)} />
           </div>
-          {error ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{error}</p> : null}
+          {error ? <FeedbackMessage type="error">{error}</FeedbackMessage> : null}
           <div className="rounded-md border max-[900px]:space-y-3 max-[900px]:border-0 min-[901px]:overflow-hidden">
             <div className="table-grid bg-muted px-4 py-3 text-xs font-semibold uppercase text-muted-foreground max-[900px]:hidden">
               <span>Job</span>
@@ -120,7 +124,11 @@ export function PythonJobsClient() {
               <span>Status</span>
               <span>Actions</span>
             </div>
-            {loading ? <p className="p-4 text-sm text-muted-foreground">Memuat Python jobs...</p> : null}
+            {loading ? (
+              <div className="p-4">
+                <SkeletonLines count={4} />
+              </div>
+            ) : null}
             {!loading && jobs.length === 0 ? <p className="p-4 text-sm text-muted-foreground">Belum ada Python job.</p> : null}
             {jobs.map((job) => (
               <div
@@ -160,13 +168,13 @@ export function PythonJobsClient() {
                   onClick={(event) => event.stopPropagation()}
                   onKeyDown={(event) => event.stopPropagation()}
                 >
-                  <Button variant="outline" size="icon" title="Pause/resume" onClick={() => toggle(job)}>
+                  <Button variant="outline" size="icon" title="Pause/resume" aria-label={job.enabled ? `Pause ${job.name}` : `Resume ${job.name}`} onClick={() => toggle(job)}>
                     {job.enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   </Button>
-                  <Button variant="outline" size="icon" title="Copy ID" onClick={() => navigator.clipboard.writeText(String(job.id))}>
+                  <Button variant="outline" size="icon" title="Copy ID" aria-label={`Copy ID ${job.name}`} onClick={() => navigator.clipboard.writeText(String(job.id))}>
                     <Copy className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="icon" title="Delete" onClick={() => remove(job.id)}>
+                  <Button variant="outline" size="icon" title="Delete" aria-label={`Hapus ${job.name}`} onClick={() => setDeleteTarget(job)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -194,6 +202,16 @@ export function PythonJobsClient() {
           )}
         </CardContent>
       </Card>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Hapus Python job?"
+        description={deleteTarget ? `Job "${deleteTarget.name}" akan dihapus beserta file script, run, dan log terkait.` : ""}
+        confirmLabel="Hapus"
+        destructive
+        loading={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && remove(deleteTarget)}
+      />
     </div>
   );
 }

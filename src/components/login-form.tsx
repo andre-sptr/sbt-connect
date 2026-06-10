@@ -8,9 +8,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function LoginForm() {
+export function LoginForm({ initialError = "" }: { initialError?: string }) {
   const router = useRouter();
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError);
   const [loading, setLoading] = useState(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -39,19 +39,19 @@ export function LoginForm() {
   return (
     <Card>
       <CardContent className="pt-5">
-        <form className="space-y-4" onSubmit={submit}>
+        <form className="space-y-4" action="/api/auth/login" method="post" onSubmit={submit}>
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
             <div className="relative">
               <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input id="username" name="username" className="pl-9" autoComplete="username" />
+              <Input id="username" name="username" className="pl-9" autoComplete="username" required />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input id="password" name="password" type="password" className="pl-9" autoComplete="current-password" />
+              <Input id="password" name="password" type="password" className="pl-9" autoComplete="current-password" required />
             </div>
           </div>
           {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{error}</p> : null}

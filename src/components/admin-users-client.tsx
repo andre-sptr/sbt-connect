@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
+import { SkeletonLines } from "@/components/ui/skeleton";
 
 type User = {
   id: number;
@@ -36,6 +39,7 @@ export function AdminUsersClient() {
   const [resetting, setResetting] = useState<number | null>(null);
   const [deactivating, setDeactivating] = useState<number | null>(null);
   const [resending, setResending] = useState<number | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ type: "reset" | "resend" | "deactivate"; user: User } | null>(null);
 
   // Copied password modal
   const [createdCreds, setCreatedCreds] = useState<{ username: string; password: string } | null>(null);
@@ -86,8 +90,7 @@ export function AdminUsersClient() {
     }
   }
 
-  async function handleReset(user: User) {
-    if (!confirm(`Reset password untuk "${user.username}"?`)) return;
+  async function performReset(user: User) {
     setResetting(user.id);
     try {
       const res = await fetch(`/api/admin/users/${user.id}/reset-password`, { method: "POST" });
@@ -101,8 +104,7 @@ export function AdminUsersClient() {
     }
   }
 
-  async function handleResend(user: User) {
-    if (!confirm(`Kirim ulang kredensial ke Telegram "${user.username}"?`)) return;
+  async function performResend(user: User) {
     setResending(user.id);
     try {
       const res = await fetch(`/api/admin/users/${user.id}/resend-credentials`, { method: "POST" });
@@ -121,8 +123,7 @@ export function AdminUsersClient() {
     }
   }
 
-  async function handleDeactivate(user: User) {
-    if (!confirm(`Nonaktifkan akun "${user.username}"? Semua project-nya juga akan dinonaktifkan.`)) return;
+  async function performDeactivate(user: User) {
     setDeactivating(user.id);
     try {
       const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
@@ -137,24 +138,58 @@ export function AdminUsersClient() {
     }
   }
 
+  async function confirmPendingAction() {
+    if (!confirmAction) return;
+    const action = confirmAction;
+    setConfirmAction(null);
+    if (action.type === "reset") await performReset(action.user);
+    if (action.type === "resend") await performResend(action.user);
+    if (action.type === "deactivate") await performDeactivate(action.user);
+  }
+
+  function actionCopy() {
+    if (!confirmAction) {
+      return { title: "", description: "", confirmLabel: "" };
+    }
+    if (confirmAction.type === "reset") {
+      return {
+        title: "Reset password?",
+        description: `Password baru untuk "${confirmAction.user.username}" akan dibuat dan ditampilkan sekali.`,
+        confirmLabel: "Reset Password",
+      };
+    }
+    if (confirmAction.type === "resend") {
+      return {
+        title: "Kirim ulang kredensial?",
+        description: `Kredensial baru akan dikirim ke Telegram user "${confirmAction.user.username}".`,
+        confirmLabel: "Kirim",
+      };
+    }
+    return {
+      title: "Nonaktifkan user?",
+      description: `Akun "${confirmAction.user.username}" dan semua project miliknya akan dinonaktifkan.`,
+      confirmLabel: "Nonaktifkan",
+    };
+  }
+
+  const confirmText = actionCopy();
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Kelola User</h1>
-          <p className="text-sm text-muted-foreground">Tambah, reset password, atau nonaktifkan akun pengguna.</p>
-        </div>
-        <div className="flex gap-2">
+      <DashboardPageHeader
+        title="Kelola User"
+        description="Tambah, reset password, atau nonaktifkan akun pengguna."
+        actions={<>
           <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+            <span className="sr-only">Refresh user</span>
           </Button>
           <Button size="sm" onClick={() => setShowCreate((v) => !v)}>
             <UserPlus className="h-4 w-4" />
             Tambah User
           </Button>
-        </div>
-      </div>
+        </>}
+      />
 
       {/* Create form */}
       {showCreate && (
@@ -193,7 +228,7 @@ export function AdminUsersClient() {
       )}
 
       {/* User table */}
-      <div className="rounded-lg border bg-card overflow-hidden">
+      <div className="hidden rounded-lg border bg-card md:block md:overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40">
@@ -209,7 +244,7 @@ export function AdminUsersClient() {
             {loading ? (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                  Memuat...
+                  <SkeletonLines count={4} />
                 </td>
               </tr>
             ) : users.length === 0 ? (
@@ -241,7 +276,7 @@ export function AdminUsersClient() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleReset(user)}
+                        onClick={() => setConfirmAction({ type: "reset", user })}
                         disabled={!user.isActive || resetting === user.id}
                         title="Reset Password"
                       >
@@ -252,7 +287,7 @@ export function AdminUsersClient() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleResend(user)}
+                          onClick={() => setConfirmAction({ type: "resend", user })}
                           disabled={!user.isActive || resending === user.id}
                           title="Kirim ulang kredensial via Telegram"
                         >
@@ -265,7 +300,7 @@ export function AdminUsersClient() {
                           variant="outline"
                           size="sm"
                           className="text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDeactivate(user)}
+                          onClick={() => setConfirmAction({ type: "deactivate", user })}
                           disabled={deactivating === user.id}
                           title="Nonaktifkan user"
                         >
@@ -280,6 +315,68 @@ export function AdminUsersClient() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        {loading ? (
+          <div className="rounded-lg border bg-card p-4">
+            <SkeletonLines count={5} />
+          </div>
+        ) : null}
+        {!loading && users.length === 0 ? (
+          <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">Belum ada user.</div>
+        ) : null}
+        {!loading && users.map((user) => (
+          <div key={user.id} className="rounded-lg border bg-card p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="break-words font-mono text-sm font-semibold text-foreground">{user.username}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{user._count.projects} project</p>
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <Badge variant={user.role === "admin" ? "default" : "muted"}>{user.role}</Badge>
+                <Badge variant={user.isActive ? "success" : "muted"}>{user.isActive ? "Aktif" : "Nonaktif"}</Badge>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Telegram: {user.telegramChatId ? "Terhubung" : "Belum terhubung"}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmAction({ type: "reset", user })}
+                disabled={!user.isActive || resetting === user.id}
+              >
+                <KeyRound className="h-3.5 w-3.5" />
+                Reset PW
+              </Button>
+              {user.telegramChatId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmAction({ type: "resend", user })}
+                  disabled={!user.isActive || resending === user.id}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Kirim
+                </Button>
+              )}
+              {user.isActive && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:bg-destructive/10"
+                  onClick={() => setConfirmAction({ type: "deactivate", user })}
+                  disabled={deactivating === user.id}
+                >
+                  <UserX className="h-3.5 w-3.5" />
+                  Nonaktifkan
+                </Button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Created credentials modal */}
@@ -318,6 +415,16 @@ export function AdminUsersClient() {
           </div>
         ))}
       </div>
+      <ConfirmDialog
+        open={!!confirmAction}
+        title={confirmText.title}
+        description={confirmText.description}
+        confirmLabel={confirmText.confirmLabel}
+        destructive={confirmAction?.type === "deactivate"}
+        loading={!!confirmAction && (resetting === confirmAction.user.id || resending === confirmAction.user.id || deactivating === confirmAction.user.id)}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={confirmPendingAction}
+      />
     </div>
   );
 }

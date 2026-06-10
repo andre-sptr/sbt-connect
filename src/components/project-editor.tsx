@@ -3,13 +3,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BarChart3, CalendarClock, Eye, FlaskConical, Globe, Link2, MessageSquareText, Play, Save, Send, Table2, Trash2 } from "lucide-react";
+import { BarChart3, CalendarClock, Copy, Eye, FlaskConical, Globe, Link2, MessageSquareText, Play, RefreshCw, Save, Search, Send, Table2, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
+import { FeedbackMessage } from "@/components/feedback-message";
+import { SkeletonLines } from "@/components/ui/skeleton";
 import { CronBuilder } from "@/components/cron-builder";
 import { CaptionTemplates } from "@/components/caption-templates";
 import { buildPublishedSheetUrl, findDuplicateGroupIds } from "@/lib/project-validation";
@@ -50,14 +53,16 @@ export function ProjectEditor({ mode, projectId, defaultTimezone }: ProjectEdito
   const [error, setError] = useState("");
   const [lastRun, setLastRun] = useState<RunDto | null>(null);
   const [cachedGroups, setCachedGroups] = useState<CachedGroup[]>([]);
+  const [groupSearch, setGroupSearch] = useState("");
+  const [refreshingGroups, setRefreshingGroups] = useState(false);
   const [showIframe, setShowIframe] = useState(false);
   const [progressLogs, setProgressLogs] = useState<Array<{ id: number; level: string; message: string }>>([]);
   const [runDone, setRunDone] = useState<{ status: string; errorSummary?: string | null } | null>(null);
   const [publicToken, setPublicToken] = useState<string | null>(null);
   const [tokenLoading, setTokenLoading] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/groups", { cache: "no-store" })
+  async function loadCachedGroups() {
+    return fetch("/api/groups", { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => {
         if (j.groups) {
@@ -65,6 +70,25 @@ export function ProjectEditor({ mode, projectId, defaultTimezone }: ProjectEdito
         }
       })
       .catch(() => { });
+  }
+
+  async function refreshCachedGroups() {
+    setRefreshingGroups(true);
+    setError("");
+    setMessage("");
+    const response = await fetch("/api/groups", { method: "POST" });
+    setRefreshingGroups(false);
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setError(json.error || "Gagal refresh grup dari WAHA.");
+      return;
+    }
+    setMessage(`${json.count} grup berhasil di-refresh.`);
+    await loadCachedGroups();
+  }
+
+  useEffect(() => {
+    loadCachedGroups();
   }, []);
 
   useEffect(() => {
@@ -97,6 +121,14 @@ export function ProjectEditor({ mode, projectId, defaultTimezone }: ProjectEdito
   const groupIds = useMemo(() => parseGroupIds(state.groupIdsText), [state.groupIdsText]);
   const duplicateGroupIds = useMemo(() => findDuplicateGroupIds(groupIds), [groupIds]);
   const hasDuplicateGroupIds = duplicateGroupIds.length > 0;
+  const filteredGroups = useMemo(() => {
+    const query = groupSearch.trim().toLowerCase();
+    const selected = new Set(groupIds);
+    return cachedGroups
+      .filter((group) => !selected.has(group.remote))
+      .filter((group) => !query || group.name.toLowerCase().includes(query) || group.remote.toLowerCase().includes(query))
+      .slice(0, 8);
+  }, [cachedGroups, groupIds, groupSearch]);
   const previewUrl = useMemo(() => {
     try {
       return buildPublishedSheetUrl(state.spreadsheetUrl, state.gid, state.cellRange);
@@ -104,9 +136,41 @@ export function ProjectEditor({ mode, projectId, defaultTimezone }: ProjectEdito
       return "";
     }
   }, [state.spreadsheetUrl, state.gid, state.cellRange]);
+  const validationIssues = useMemo(() => {
+    const issues: string[] = [];
+    if (state.name.trim().length < 2) issues.push("Nama project minimal 2 karakter.");
+    if (groupIds.length === 0) issues.push("Minimal satu Group ID tujuan.");
+    if (groupIds.some((id) => !id.endsWith("@g.us"))) issues.push("Semua Group ID harus diakhiri @g.us.");
+    if (hasDuplicateGroupIds) issues.push(`Group ID tujuan tidak boleh duplikat: ${duplicateGroupIds.join(", ")}.`);
+    try {
+      new URL(state.spreadsheetUrl);
+    } catch {
+      issues.push("URL spreadsheet tidak valid.");
+    }
+    if (!state.gid.trim()) issues.push("GID sheet wajib diisi.");
+    if (!/^[A-Z]+[0-9]+:[A-Z]+[0-9]+$/i.test(state.cellRange.trim())) issues.push("Format rentang cell harus seperti A1:K22.");
+    if (!state.caption.trim()) issues.push("Caption wajib diisi.");
+    if (!state.cronExpression.trim()) issues.push("Jadwal wajib diisi.");
+    if (state.maxRetries < 0 || state.maxRetries > 5) issues.push("Retry otomatis harus 0 sampai 5.");
+    if (state.retryDelayMinutes < 1 || state.retryDelayMinutes > 60) issues.push("Jeda retry harus 1 sampai 60 menit.");
+    return issues;
+  }, [state, groupIds, hasDuplicateGroupIds, duplicateGroupIds]);
 
   function update<K extends keyof typeof state>(key: K, value: (typeof state)[K]) {
     setState((current) => (current[key] === value ? current : { ...current, [key]: value }));
+  }
+
+  function updateGroupIds(nextGroupIds: string[]) {
+    update("groupIdsText", nextGroupIds.join("\n"));
+  }
+
+  function addGroup(groupId: string) {
+    updateGroupIds(Array.from(new Set([...groupIds, groupId])));
+    setGroupSearch("");
+  }
+
+  function removeGroup(index: number) {
+    updateGroupIds(groupIds.filter((_, currentIndex) => currentIndex !== index));
   }
 
   const updateCronExpression = useCallback((cron: string) => {
@@ -132,8 +196,8 @@ export function ProjectEditor({ mode, projectId, defaultTimezone }: ProjectEdito
   async function save() {
     setMessage("");
     setError("");
-    if (hasDuplicateGroupIds) {
-      setError("Group ID tujuan tidak boleh duplikat.");
+    if (validationIssues.length > 0) {
+      setError(validationIssues[0]);
       return;
     }
 
@@ -201,18 +265,31 @@ export function ProjectEditor({ mode, projectId, defaultTimezone }: ProjectEdito
     );
   }
 
-  if (loading) return <p className="text-sm text-muted-foreground">Memuat project...</p>;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <DashboardPageHeader title="Memuat Project" description="Mengambil detail project..." backHref="/dashboard/projects" />
+        <Card>
+          <CardContent className="pt-5">
+            <SkeletonLines count={6} />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-foreground">
-            {mode === "create" ? "Buat Projek Bot" : state.name}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">Atur sheet, grup tujuan, caption, dan jadwal otomatis.</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <DashboardPageHeader
+        title={mode === "create" ? "Buat Projek Bot" : state.name}
+        description="Atur sheet, grup tujuan, caption, dan jadwal otomatis."
+        backHref="/dashboard/projects"
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Projects", href: "/dashboard/projects" },
+          { label: mode === "create" ? "Buat" : state.name },
+        ]}
+        actions={<>
           {mode === "edit" && projectId && (
             <Link
               href={`/dashboard/projects/${projectId}/stats`}
@@ -222,14 +299,14 @@ export function ProjectEditor({ mode, projectId, defaultTimezone }: ProjectEdito
               Statistik
             </Link>
           )}
-          <Button onClick={save} disabled={saving || hasDuplicateGroupIds}>
+          <Button onClick={save} disabled={saving || validationIssues.length > 0}>
             <Save className="h-4 w-4" />
             {saving ? "Menyimpan..." : "Simpan"}
           </Button>
-        </div>
-      </div>
-      {message ? <p className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-200">{message}</p> : null}
-      {error ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{error}</p> : null}
+        </>}
+      />
+      {message ? <FeedbackMessage type="success">{message}</FeedbackMessage> : null}
+      {error ? <FeedbackMessage type="error">{error}</FeedbackMessage> : null}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="space-y-6">
@@ -261,11 +338,64 @@ export function ProjectEditor({ mode, projectId, defaultTimezone }: ProjectEdito
                   {groupIds.map((groupId, index) => {
                     const alias = cachedGroups.find((g) => g.remote === groupId)?.name;
                     return (
-                      <Badge key={`${groupId}-${index}`} variant={groupId.endsWith("@g.us") ? "default" : "warning"} title={groupId}>
-                        {alias ? `${alias}` : groupId}
-                      </Badge>
+                      <span
+                        key={`${groupId}-${index}`}
+                        className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-100 px-2.5 py-1 text-xs font-medium text-red-800 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-300"
+                        title={groupId}
+                      >
+                        {alias || groupId}
+                        <button type="button" aria-label={`Hapus ${alias || groupId}`} onClick={() => removeGroup(index)} className="rounded-full p-0.5 hover:bg-red-200/70 dark:hover:bg-red-900/50">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
                     );
                   })}
+                </div>
+                <div className="rounded-md border bg-muted/30 p-3">
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-foreground">Tambah dari grup</p>
+                    <p className="text-xs text-muted-foreground">Pilih grup dari WAHA atau paste ID manual di atas.</p>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        className="pl-9"
+                        value={groupSearch}
+                        onChange={(event) => setGroupSearch(event.target.value)}
+                        placeholder="Cari grup dari WAHA..."
+                      />
+                    </div>
+                    <Button type="button" variant="outline" onClick={refreshCachedGroups} disabled={refreshingGroups}>
+                      <RefreshCw className="h-4 w-4" />
+                      {refreshingGroups ? "Refresh..." : "Refresh Grup"}
+                    </Button>
+                  </div>
+                  <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
+                    {filteredGroups.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        {cachedGroups.length === 0 ? "Belum ada grup. Klik Refresh Grup untuk mengambil dari WAHA." : "Tidak ada grup yang cocok."}
+                      </p>
+                    ) : (
+                      filteredGroups.map((group) => (
+                        <div key={group.remote} className="flex flex-col gap-2 rounded-md border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground">{group.name}</p>
+                            <p className="break-all font-mono text-xs text-muted-foreground">{group.remote}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button type="button" variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(group.remote)}>
+                              <Copy className="h-4 w-4" />
+                              Copy
+                            </Button>
+                            <Button type="button" size="sm" onClick={() => addGroup(group.remote)}>
+                              Tambah
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
                 {hasDuplicateGroupIds && (
                   <p className="text-xs text-red-600 dark:text-red-300">Group ID tujuan tidak boleh duplikat: {duplicateGroupIds.join(", ")}.</p>
@@ -394,6 +524,43 @@ export function ProjectEditor({ mode, projectId, defaultTimezone }: ProjectEdito
 
         {/* Sidebar kanan */}
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Ringkasan</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Tujuan</span>
+                <Badge variant={groupIds.length > 0 ? "success" : "warning"}>{groupIds.length} grup</Badge>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Sheet</span>
+                <Badge variant={previewUrl ? "success" : "warning"}>{previewUrl ? "Valid" : "Belum valid"}</Badge>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Status</span>
+                <Badge variant={state.enabled ? "success" : "muted"}>{state.enabled ? "Aktif" : "Paused"}</Badge>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase text-muted-foreground">Jadwal</p>
+                <p className="mt-1 break-all font-mono text-xs text-foreground">{state.cronExpression || "-"}</p>
+              </div>
+              {validationIssues.length > 0 ? (
+                <FeedbackMessage type="warning">
+                  <p className="font-medium">Validasi</p>
+                  <p className="mt-1">Belum siap disimpan</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-4">
+                    {validationIssues.slice(0, 5).map((issue) => (
+                      <li key={issue}>{issue}</li>
+                    ))}
+                  </ul>
+                </FeedbackMessage>
+              ) : (
+                <FeedbackMessage type="success">Siap disimpan dan dijalankan.</FeedbackMessage>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Aksi Test</CardTitle>

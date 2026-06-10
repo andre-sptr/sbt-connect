@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { Activity, AlertTriangle, Clock, FolderKanban } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
+import { FeedbackMessage } from "@/components/feedback-message";
+import { Skeleton, SkeletonLines } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/utils";
 import type { ProjectDto, RunDto } from "@/types/dashboard";
 
@@ -38,8 +41,32 @@ export function OverviewClient() {
     return () => window.clearInterval(timer);
   }, []);
 
-  if (error) return <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{error}</p>;
-  if (!data) return <p className="text-sm text-muted-foreground">Memuat dashboard...</p>;
+  if (error) return <FeedbackMessage type="error">{error}</FeedbackMessage>;
+  if (!data) {
+    return (
+      <div className="space-y-6">
+        <DashboardPageHeader title="Overview" description="Status scheduler, projek aktif, dan riwayat pengiriman terbaru." />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Card key={index}>
+              <CardContent className="space-y-3 pt-5">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-7 w-20" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-32" />
+          </CardHeader>
+          <CardContent>
+            <SkeletonLines count={3} />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const cards = [
     { label: "Total Projek", value: data.totalProjects, icon: FolderKanban },
@@ -50,10 +77,7 @@ export function OverviewClient() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal text-foreground">Overview</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Status scheduler, projek aktif, dan riwayat pengiriman terbaru.</p>
-      </div>
+      <DashboardPageHeader title="Overview" description="Status scheduler, projek aktif, dan riwayat pengiriman terbaru." />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
           <Card key={card.label}>

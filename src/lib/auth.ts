@@ -2,11 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AUTH_COOKIE } from "@/lib/auth-cookie";
 import { prisma } from "@/lib/prisma";
-import {
-  createSessionToken as createToken,
-  verifyTokenSignature,
-  type SessionPayload,
-} from "@/lib/auth-utils";
+import { verifyTokenSignature, type SessionPayload } from "@/lib/auth-utils";
 export { AUTH_COOKIE };
 export type { SessionPayload };
 

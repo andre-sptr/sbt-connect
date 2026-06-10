@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requireApiSession } from "@/lib/auth";
+import { requireAdminApi, requireApiSession } from "@/lib/auth";
 import { reloadScheduler } from "@/lib/scheduler";
 import { pythonJobData, pythonJobToDto, savePythonScript } from "@/lib/python-job-service";
 import { pythonJobSchema, validatePythonCronExpression, validatePythonFilename } from "@/lib/python-job-validation";
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await requireApiSession();
+  const session = await requireAdminApi();
   if (session instanceof Response) return session;
 
   const formData = await request.formData().catch(() => null);

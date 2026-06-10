@@ -22,6 +22,22 @@ const adminNavItems = [
   { href: "https://wa.sbtconnect.online/", label: "WA Broadcast", icon: Radio, external: true },
 ];
 
+function pageTitle(pathname: string) {
+  if (pathname === "/dashboard") return "Overview";
+  if (pathname.startsWith("/dashboard/projects/new")) return "Buat Project";
+  if (pathname.match(/^\/dashboard\/projects\/[^/]+\/stats/)) return "Statistik Project";
+  if (pathname.match(/^\/dashboard\/projects\/[^/]+/)) return "Detail Project";
+  if (pathname.startsWith("/dashboard/projects")) return "Projects";
+  if (pathname.startsWith("/dashboard/python-jobs/new")) return "Buat Python Job";
+  if (pathname.match(/^\/dashboard\/python-jobs\/[^/]+/)) return "Detail Python Job";
+  if (pathname.startsWith("/dashboard/python-jobs")) return "Python Jobs";
+  if (pathname.startsWith("/dashboard/python-dependencies")) return "Python Dependencies";
+  if (pathname.startsWith("/dashboard/groups")) return "Groups";
+  if (pathname.startsWith("/dashboard/logs")) return "Logs";
+  if (pathname.startsWith("/dashboard/admin/users")) return "Kelola User";
+  return "SBT Connect";
+}
+
 type SidebarProps = {
   pathname: string;
   role: "admin" | "user";
@@ -157,6 +173,7 @@ export function DashboardShell({ children, username, role }: DashboardShellProps
         <button
           type="button"
           onClick={() => setDrawerOpen(false)}
+          aria-label="Tutup menu"
           className="absolute right-3 top-3 rounded-md p-1.5 text-muted-foreground hover:text-foreground"
         >
           <X className="h-5 w-5" />
@@ -177,6 +194,7 @@ export function DashboardShell({ children, username, role }: DashboardShellProps
               {/* Hamburger mobile */}
               <button
                 type="button"
+                aria-label="Buka menu"
                 className="rounded-md border border-input bg-background p-2 text-muted-foreground lg:hidden"
                 onClick={() => setDrawerOpen(true)}
               >
@@ -187,7 +205,7 @@ export function DashboardShell({ children, username, role }: DashboardShellProps
                 <p className="text-xs text-muted-foreground">Kelola pengiriman screenshot Google Sheet ke WhatsApp.</p>
               </div>
               <div className="lg:hidden">
-                <p className="text-sm font-semibold text-foreground">SBT Connect</p>
+                <p className="text-sm font-semibold text-foreground">{pageTitle(pathname)}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">

@@ -1,8 +1,8 @@
-import { requireApiSession } from "@/lib/auth";
+import { requireAdminApi } from "@/lib/auth";
 import { installPythonDependency, listPythonDependencies } from "@/lib/python-venv";
 
 export async function GET() {
-  const session = await requireApiSession();
+  const session = await requireAdminApi();
   if (session instanceof Response) return session;
 
   try {
@@ -16,7 +16,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await requireApiSession();
+  const session = await requireAdminApi();
   if (session instanceof Response) return session;
 
   const body = (await request.json().catch(() => null)) as { packageSpec?: string } | null;

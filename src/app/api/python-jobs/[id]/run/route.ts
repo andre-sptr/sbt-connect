@@ -1,11 +1,11 @@
-import { requireApiSession } from "@/lib/auth";
+import { requireAdminApi } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { runPythonJob } from "@/lib/python-runner";
 
 type Context = { params: Promise<{ id: string }> };
 
 export async function POST(_request: Request, context: Context) {
-  const session = await requireApiSession();
+  const session = await requireAdminApi();
   if (session instanceof Response) return session;
 
   const { id } = await context.params;

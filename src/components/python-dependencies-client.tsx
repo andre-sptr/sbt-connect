@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
+import { FeedbackMessage } from "@/components/feedback-message";
+import { SkeletonLines } from "@/components/ui/skeleton";
 import type { PythonDependencyDto } from "@/types/dashboard";
 
 type PythonDependenciesResponse = {
@@ -88,19 +91,17 @@ export function PythonDependenciesClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-foreground">Python Dependencies</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{packages.length} package tersedia di environment Python job.</p>
-        </div>
-        <Button variant="outline" onClick={load} disabled={loading || installing}>
+      <DashboardPageHeader
+        title="Python Dependencies"
+        description={`${packages.length} package tersedia di environment Python job.`}
+        actions={<Button variant="outline" onClick={load} disabled={loading || installing} aria-label="Refresh dependency Python">
           <RefreshCw className="h-4 w-4" />
           Refresh
-        </Button>
-      </div>
+        </Button>}
+      />
 
-      {message ? <p className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-200">{message}</p> : null}
-      {error ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{error}</p> : null}
+      {message ? <FeedbackMessage type="success">{message}</FeedbackMessage> : null}
+      {error ? <FeedbackMessage type="error">{error}</FeedbackMessage> : null}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <Card>
@@ -120,7 +121,11 @@ export function PythonDependenciesClient() {
                 <span>Package</span>
                 <span>Version</span>
               </div>
-              {loading ? <p className="p-4 text-sm text-muted-foreground">Memuat dependency...</p> : null}
+              {loading ? (
+                <div className="p-4">
+                  <SkeletonLines count={5} />
+                </div>
+              ) : null}
               {!loading && filteredPackages.length === 0 ? (
                 <p className="p-4 text-sm text-muted-foreground">{venvExists ? "Tidak ada package yang cocok." : ".venv belum tersedia. Install package pertama untuk membuat .venv."}</p>
               ) : null}

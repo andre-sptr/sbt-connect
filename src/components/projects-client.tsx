@@ -2,12 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Copy, Pause, Play, Plus, Search, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
+import { FeedbackMessage } from "@/components/feedback-message";
+import { SkeletonLines } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/utils";
 import type { ProjectDto } from "@/types/dashboard";
 
@@ -37,8 +41,10 @@ export function ProjectsClient() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<ProjectDto | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  async function load() {
+  const load = useCallback(async function load() {
     setLoading(true);
     const query = new URLSearchParams();
     if (search.trim()) query.set("search", search.trim());
@@ -52,21 +58,23 @@ export function ProjectsClient() {
     const json: { projects: ProjectDto[]; pagination?: ProjectsPagination } = await response.json();
     setProjects(json.projects);
     if (json.pagination) setPagination(json.pagination);
-  }
+  }, [page, search]);
 
   useEffect(() => {
     const timer = window.setTimeout(load, 250);
     return () => window.clearTimeout(timer);
-  }, [search, page]);
+  }, [load]);
 
   function updateSearch(value: string) {
     setSearch(value);
     setPage(1);
   }
 
-  async function remove(id: number) {
-    if (!window.confirm("Hapus projek ini?")) return;
-    await fetch(`/api/projects/${id}`, { method: "DELETE" });
+  async function remove(project: ProjectDto) {
+    setDeleting(true);
+    await fetch(`/api/projects/${project.id}`, { method: "DELETE" });
+    setDeleting(false);
+    setDeleteTarget(null);
     load();
   }
 
@@ -91,25 +99,23 @@ export function ProjectsClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-foreground">Projects</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{activeCount} projek aktif dari {pagination.total || projects.length} projek.</p>
-        </div>
-        <Button asChild>
+      <DashboardPageHeader
+        title="Projects"
+        description={`${activeCount} projek aktif dari ${pagination.total || projects.length} projek.`}
+        actions={<Button asChild>
           <Link href="/dashboard/projects/new">
             <Plus className="h-4 w-4" />
             Buat Projek
           </Link>
-        </Button>
-      </div>
+        </Button>}
+      />
       <Card>
         <CardContent className="pt-5">
           <div className="relative mb-4">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input className="pl-9" placeholder="Cari nama, URL, atau GID..." value={search} onChange={(event) => updateSearch(event.target.value)} />
           </div>
-          {error ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{error}</p> : null}
+          {error ? <FeedbackMessage type="error">{error}</FeedbackMessage> : null}
           <div className="rounded-md border max-[900px]:space-y-3 max-[900px]:border-0 min-[901px]:overflow-hidden">
             <div className="table-grid bg-muted px-4 py-3 text-xs font-semibold uppercase text-muted-foreground max-[900px]:hidden">
               <span>Project</span>
@@ -117,7 +123,11 @@ export function ProjectsClient() {
               <span>Status</span>
               <span>Actions</span>
             </div>
-            {loading ? <p className="p-4 text-sm text-muted-foreground">Memuat projek...</p> : null}
+            {loading ? (
+              <div className="p-4">
+                <SkeletonLines count={4} />
+              </div>
+            ) : null}
             {!loading && projects.length === 0 ? <p className="p-4 text-sm text-muted-foreground">Belum ada projek.</p> : null}
             {projects.map((project) => (
               <div
@@ -157,13 +167,13 @@ export function ProjectsClient() {
                   onClick={(event) => event.stopPropagation()}
                   onKeyDown={(event) => event.stopPropagation()}
                 >
-                  <Button variant="outline" size="icon" title="Pause/resume" onClick={() => toggle(project)}>
+                  <Button variant="outline" size="icon" title="Pause/resume" aria-label={project.enabled ? `Pause ${project.name}` : `Resume ${project.name}`} onClick={() => toggle(project)}>
                     {project.enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   </Button>
-                  <Button variant="outline" size="icon" title="Duplicate" onClick={() => duplicate(project.id)}>
+                  <Button variant="outline" size="icon" title="Duplicate" aria-label={`Duplikasi ${project.name}`} onClick={() => duplicate(project.id)}>
                     <Copy className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="icon" title="Delete" onClick={() => remove(project.id)}>
+                  <Button variant="outline" size="icon" title="Delete" aria-label={`Hapus ${project.name}`} onClick={() => setDeleteTarget(project)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -203,6 +213,16 @@ export function ProjectsClient() {
           )}
         </CardContent>
       </Card>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Hapus project?"
+        description={deleteTarget ? `Project "${deleteTarget.name}" akan dihapus beserta riwayat run dan log terkait.` : ""}
+        confirmLabel="Hapus"
+        destructive
+        loading={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && remove(deleteTarget)}
+      />
     </div>
   );
 }

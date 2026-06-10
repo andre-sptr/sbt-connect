@@ -1,6 +1,13 @@
 import { LoginForm } from "@/components/login-form";
 
-export default function LoginPage() {
+type Props = {
+  searchParams?: Promise<{ error?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const initialError = params?.error ? "Username atau password salah." : "";
+
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
@@ -9,7 +16,7 @@ export default function LoginPage() {
           <h1 className="text-2xl font-semibold tracking-normal text-foreground">Bot Dashboard</h1>
           <p className="mt-2 text-sm text-muted-foreground">Masuk untuk mengatur projek pengiriman WhatsApp otomatis.</p>
         </div>
-        <LoginForm />
+        <LoginForm initialError={initialError} />
       </div>
     </main>
   );

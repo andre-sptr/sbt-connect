@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requireApiSession } from "@/lib/auth";
+import { requireAdminApi, requireApiSession } from "@/lib/auth";
 import { reloadScheduler } from "@/lib/scheduler";
 import {
   deletePythonJobFiles,
@@ -77,7 +77,7 @@ export async function GET(_request: Request, context: Context) {
 }
 
 export async function PUT(request: Request, context: Context) {
-  const session = await requireApiSession();
+  const session = await requireAdminApi();
   if (session instanceof Response) return session;
 
   const { id } = await context.params;
@@ -107,7 +107,7 @@ export async function PUT(request: Request, context: Context) {
 }
 
 export async function DELETE(_request: Request, context: Context) {
-  const session = await requireApiSession();
+  const session = await requireAdminApi();
   if (session instanceof Response) return session;
 
   const { id } = await context.params;

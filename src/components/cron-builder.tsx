@@ -29,10 +29,6 @@ function humanReadable(freq: Frequency, hour: number, minute: number, days: stri
   return "Mode custom — isi cron expression manual.";
 }
 
-function daysEqual(left: string[], right: string[]) {
-  return left.length === right.length && left.every((day, index) => day === right[index]);
-}
-
 interface CronBuilderProps {
   value: string;
   onChange: (cron: string) => void;
@@ -55,17 +51,6 @@ export function CronBuilder({ value, onChange }: CronBuilderProps) {
   );
 
   useEffect(() => {
-    if (
-      externalSchedule.freq === freq &&
-      externalSchedule.hour === hour &&
-      externalSchedule.minute === minute &&
-      externalSchedule.dayOfMonth === dayOfMonth &&
-      externalSchedule.customCron === customCron &&
-      daysEqual(externalSchedule.days, days)
-    ) {
-      return;
-    }
-
     suppressNextEmit.current = true;
     setFreq(externalSchedule.freq);
     setHour(externalSchedule.hour);
@@ -73,7 +58,7 @@ export function CronBuilder({ value, onChange }: CronBuilderProps) {
     setDays(externalSchedule.days);
     setDayOfMonth(externalSchedule.dayOfMonth);
     setCustomCron(externalSchedule.customCron);
-  }, [value]);
+  }, [externalSchedule]);
 
   useEffect(() => {
     if (suppressNextEmit.current) {
@@ -82,7 +67,7 @@ export function CronBuilder({ value, onChange }: CronBuilderProps) {
     }
     if (cronValuesEqual(value, displayCron)) return;
     onChange(displayCron);
-  }, [value, displayCron]);
+  }, [value, displayCron, onChange]);
 
   function toggleDay(d: string) {
     setDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));

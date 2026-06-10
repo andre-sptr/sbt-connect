@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { CheckCircle2, Clock, TrendingUp, XCircle, Image as ImageIcon } from "lucide-react";
 import { CountdownTimer } from "@/components/countdown-timer";
+import { getPublicBaseUrl } from "@/lib/config";
 
 type Props = { params: Promise<{ token: string }> };
 
@@ -41,7 +42,7 @@ export const dynamic = "force-dynamic";
 export default async function PublicStatusPage({ params }: Props) {
   const { token } = await params;
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const baseUrl = getPublicBaseUrl();
 
   const res = await fetch(`${baseUrl}/api/status/${token}`, { cache: "no-store" });
   if (!res.ok) notFound();

@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Download, RefreshCw, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
+import { SkeletonLines } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/utils";
 import type { LogDto, ProjectDto } from "@/types/dashboard";
 
@@ -47,12 +49,12 @@ export function LogsClient() {
   });
   const [loading, setLoading] = useState(true);
 
-  async function loadProjects() {
+  const loadProjects = useCallback(async function loadProjects() {
     const response = await fetch("/api/projects", { cache: "no-store" });
     if (response.ok) setProjects((await response.json()).projects);
-  }
+  }, []);
 
-  async function loadLogs() {
+  const loadLogs = useCallback(async function loadLogs() {
     setLoading(true);
     const query = new URLSearchParams();
     if (projectId) query.set("projectId", projectId);
@@ -67,17 +69,17 @@ export function LogsClient() {
       setLogs(json.logs);
       if (json.pagination) setPagination(json.pagination);
     }
-  }
+  }, [days, level, page, projectId, q]);
 
   useEffect(() => {
     loadProjects();
-  }, []);
+  }, [loadProjects]);
 
   useEffect(() => {
     loadLogs();
     const timer = window.setInterval(loadLogs, 8000);
     return () => window.clearInterval(timer);
-  }, [projectId, level, q, days, page]);
+  }, [loadLogs]);
 
   function updateProjectId(value: string) {
     setProjectId(value);
@@ -117,22 +119,20 @@ export function LogsClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-foreground">Logs</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Riwayat proses bot dan scheduler.</p>
-        </div>
-        <div className="flex gap-2">
+      <DashboardPageHeader
+        title="Logs"
+        description="Riwayat proses bot dan scheduler."
+        actions={<>
           <Button variant="outline" onClick={handleExport} title="Export ke CSV">
             <Download className="h-4 w-4" />
             Export CSV
           </Button>
-          <Button variant="outline" onClick={loadLogs}>
+          <Button variant="outline" onClick={loadLogs} aria-label="Refresh log">
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
-        </div>
-      </div>
+        </>}
+      />
       <Card>
         <CardContent className="space-y-4 pt-5">
           {/* Filter baris 1: search keyword */}
@@ -184,7 +184,11 @@ export function LogsClient() {
           </div>
           {/* Log list */}
           <div className="divide-y rounded-md border">
-            {loading ? <p className="p-4 text-sm text-muted-foreground">Memuat log...</p> : null}
+            {loading ? (
+              <div className="p-4">
+                <SkeletonLines count={5} />
+              </div>
+            ) : null}
             {!loading && logs.length === 0 ? (
               <p className="p-4 text-sm text-muted-foreground">Tidak ada log yang cocok dengan filter.</p>
             ) : null}

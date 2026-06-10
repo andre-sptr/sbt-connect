@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const { createSessionToken, verifyTokenSignature, signPayload } = await import("../src/lib/auth-utils.ts");
+process.env.AUTH_SECRET = "test-auth-secret-at-least-32-characters";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -16,6 +17,24 @@ const { createSessionToken, verifyTokenSignature, signPayload } = await import("
 
 function validPayload() {
   return { userId: 1, username: "testadmin", role: "admin" };
+}
+
+function withTemporaryAuthSecret(value, callback) {
+  const previous = process.env.AUTH_SECRET;
+  if (value === undefined) {
+    delete process.env.AUTH_SECRET;
+  } else {
+    process.env.AUTH_SECRET = value;
+  }
+  try {
+    return callback();
+  } finally {
+    if (previous === undefined) {
+      delete process.env.AUTH_SECRET;
+    } else {
+      process.env.AUTH_SECRET = previous;
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -38,6 +57,24 @@ test("createSessionToken embeds userId, username, role and a future exp", () => 
   assert.equal(decoded.username, "testadmin");
   assert.equal(decoded.role, "admin");
   assert.ok(decoded.exp > Date.now(), "exp should be in the future");
+});
+
+test("createSessionToken rejects a missing AUTH_SECRET", () => {
+  withTemporaryAuthSecret(undefined, () => {
+    assert.throws(
+      () => createSessionToken(validPayload()),
+      /AUTH_SECRET must be configured/
+    );
+  });
+});
+
+test("createSessionToken rejects the development fallback secret", () => {
+  withTemporaryAuthSecret("development-only-auth-secret", () => {
+    assert.throws(
+      () => createSessionToken(validPayload()),
+      /AUTH_SECRET must be configured/
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

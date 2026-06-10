@@ -89,13 +89,15 @@ nano .env
 Isi contoh (lihat juga `.env.example` di repo):
 
 ```env
+NEXT_PUBLIC_BASE_URL="https://bot.domain-anda.com"
 DATABASE_URL="file:../database/dashboard-bot.db"
-AUTH_SECRET="ganti-dengan-hasil-openssl"
-LOGIN_USERNAME="ganti-dengan-username-login"
-LOGIN_PASSWORD="ganti-dengan-password-login-kuat"
+AUTH_SECRET="ganti-dengan-hasil-openssl-rand-base64-32"
+ADMIN_USERNAME="ganti-dengan-username-admin"
+ADMIN_PASSWORD="ganti-dengan-password-admin-kuat"
 WAHA_URL="https://waha.domain-anda.com"
 WAHA_SESSION="default"
 WAHA_API_KEY="ganti-dengan-api-key-waha"
+WAHA_WEBHOOK_SECRET="ganti-dengan-secret-webhook-waha"
 TELEGRAM_BOT_TOKEN="token-bot-dari-botfather"
 TELEGRAM_WEBHOOK_SECRET="secret-panjang-untuk-header-webhook"
 # Opsional: username bot tanpa @
@@ -119,6 +121,8 @@ Catatan:
 
 - `DATABASE_URL="file:../database/dashboard-bot.db"` menyimpan SQLite DB di folder `/www/wwwroot/dashboard-bot/database/dashboard-bot.db`.
 - Jangan gunakan `AUTH_SECRET` contoh di production.
+- `NEXT_PUBLIC_BASE_URL` harus berisi URL publik dashboard, dipakai halaman status publik.
+- `WAHA_WEBHOOK_SECRET` harus dikirim WAHA sebagai header `x-waha-webhook-secret` saat memanggil `/api/webhook/waha`.
 - `WAHA_URL` harus bisa diakses dari VPS. Bisa domain publik, subdomain, atau `http://127.0.0.1:3001` jika WAHA berjalan di VPS yang sama.
 - `TELEGRAM_WEBHOOK_SECRET` dipakai untuk memvalidasi header `X-Telegram-Bot-Api-Secret-Token` dari Telegram.
 

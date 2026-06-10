@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
+import { FeedbackMessage } from "@/components/feedback-message";
+import { SkeletonLines } from "@/components/ui/skeleton";
 import { CronBuilder } from "@/components/cron-builder";
 import { formatDateTime } from "@/lib/utils";
 import type { PythonJobDto, PythonJobLogDto, PythonRunDto } from "@/types/dashboard";
@@ -49,7 +52,7 @@ export function PythonJobEditor({ mode, jobId, defaultTimezone }: PythonJobEdito
   const [progressLogs, setProgressLogs] = useState<ProgressLog[]>([]);
   const [runDone, setRunDone] = useState<{ status: string; errorSummary?: string | null } | null>(null);
 
-  async function load() {
+  const load = useCallback(async function load() {
     if (mode !== "edit" || !jobId) return;
     setLoading(true);
     const response = await fetch(`/api/python-jobs/${jobId}`, { cache: "no-store" });
@@ -69,11 +72,11 @@ export function PythonJobEditor({ mode, jobId, defaultTimezone }: PythonJobEdito
     setRuns(json.runs || []);
     setLogs(json.logs || []);
     setLoading(false);
-  }
+  }, [jobId, mode]);
 
   useEffect(() => {
     load();
-  }, [mode, jobId]);
+  }, [load]);
 
   function update<K extends keyof typeof state>(key: K, value: (typeof state)[K]) {
     setState((current) => (current[key] === value ? current : { ...current, [key]: value }));
@@ -176,18 +179,31 @@ export function PythonJobEditor({ mode, jobId, defaultTimezone }: PythonJobEdito
     return "muted";
   }
 
-  if (loading) return <p className="text-sm text-muted-foreground">Memuat Python job...</p>;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <DashboardPageHeader title="Memuat Python Job" description="Mengambil detail job..." backHref="/dashboard/python-jobs" />
+        <Card>
+          <CardContent className="pt-5">
+            <SkeletonLines count={6} />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-foreground">
-            {mode === "create" ? "Buat Python Job" : state.name}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">Upload script Python dan atur jadwal otomatis.</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <DashboardPageHeader
+        title={mode === "create" ? "Buat Python Job" : state.name}
+        description="Upload script Python dan atur jadwal otomatis."
+        backHref="/dashboard/python-jobs"
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Python Jobs", href: "/dashboard/python-jobs" },
+          { label: mode === "create" ? "Buat" : state.name },
+        ]}
+        actions={<>
           {mode === "edit" && (
             <Button variant="outline" onClick={runNow} disabled={running}>
               <Play className="h-4 w-4" />
@@ -198,11 +214,11 @@ export function PythonJobEditor({ mode, jobId, defaultTimezone }: PythonJobEdito
             <Save className="h-4 w-4" />
             {saving ? "Menyimpan..." : "Simpan"}
           </Button>
-        </div>
-      </div>
+        </>}
+      />
 
-      {message ? <p className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-200">{message}</p> : null}
-      {error ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">{error}</p> : null}
+      {message ? <FeedbackMessage type="success">{message}</FeedbackMessage> : null}
+      {error ? <FeedbackMessage type="error">{error}</FeedbackMessage> : null}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="space-y-6">

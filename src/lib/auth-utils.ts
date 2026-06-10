@@ -23,12 +23,23 @@ function base64Url(input: string): string {
   return Buffer.from(input).toString("base64url");
 }
 
-function getSecret(): string {
-  return process.env.AUTH_SECRET || "development-only-auth-secret";
+const MIN_AUTH_SECRET_LENGTH = 32;
+const INVALID_AUTH_SECRETS = new Set([
+  "development-only-auth-secret",
+  "ganti-dengan-hasil-openssl-rand-base64-32",
+  "ganti-dengan-hasil-openssl",
+]);
+
+export function getConfiguredAuthSecret(): string {
+  const secret = process.env.AUTH_SECRET?.trim();
+  if (!secret || INVALID_AUTH_SECRETS.has(secret) || secret.length < MIN_AUTH_SECRET_LENGTH) {
+    throw new Error("AUTH_SECRET must be configured server-side with a strong non-placeholder value.");
+  }
+  return secret;
 }
 
 export function signPayload(encodedPayload: string): string {
-  return createHmac("sha256", getSecret()).update(encodedPayload).digest("base64url");
+  return createHmac("sha256", getConfiguredAuthSecret()).update(encodedPayload).digest("base64url");
 }
 
 export function createSessionToken(payload: Omit<SessionPayload, "exp">): string {

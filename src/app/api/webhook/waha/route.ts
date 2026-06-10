@@ -18,6 +18,7 @@ import {
   isProjectCommandText,
 } from "@/lib/bot-commands";
 import { checkRateLimit, getUserRole } from "@/lib/bot-command-parser";
+import { getWahaWebhookSecret } from "@/lib/config";
 
 type WahaWebhookPayload = {
   event?: string;
@@ -36,6 +37,21 @@ type WahaWebhookPayload = {
  * Konfigurasi di WAHA: Webhook URL = https://<host>/api/webhook/waha
  */
 export async function POST(request: Request) {
+  let webhookSecret: string;
+  try {
+    webhookSecret = getWahaWebhookSecret();
+  } catch (error) {
+    return Response.json(
+      { ok: false, error: error instanceof Error ? error.message : "WAHA webhook config invalid" },
+      { status: 500 }
+    );
+  }
+
+  const providedSecret = request.headers.get("x-waha-webhook-secret");
+  if (!providedSecret || providedSecret !== webhookSecret) {
+    return Response.json({ ok: false, error: "Invalid WAHA webhook secret." }, { status: 401 });
+  }
+
   let body: WahaWebhookPayload;
   try {
     body = await request.json();
