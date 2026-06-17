@@ -7,6 +7,8 @@ import { buildPublishedSheetUrl } from "@/lib/project-validation";
 import { safeJsonArray } from "@/lib/utils";
 import { writeLog } from "@/lib/logging";
 import { notifyAdmin } from "@/lib/notify-admin";
+import { sendToWahaWithRecovery } from "@/lib/waha-send";
+import { prepareImageForWaha, getWahaImageOptionsFromEnv } from "@/lib/waha-image";
 
 const storageDir = path.join(process.cwd(), "storage", "screenshots");
 const thumbnailDir = path.join(process.cwd(), "storage", "thumbnails");
@@ -257,42 +259,66 @@ async function sendImageToWhatsapp(input: {
   runCount?: number;
 }) {
   const config = getWahaConfig();
-  const image = await fs.readFile(input.filePath);
-  const data = image.toString("base64");
+
+  // Perkecil gambar agar aman diproses renderer WEBJS WAHA. Screenshot mentah
+  // bisa terlalu besar dan membuat Chromium WAHA tumbang ("Target closed").
+  // Gambar kecil tetap PNG tajam; yang besar diturunkan/di-JPEG agar masuk
+  // anggaran ukuran.
+  const rawImage = await fs.readFile(input.filePath);
+  const prepared = await prepareImageForWaha(rawImage, getWahaImageOptionsFromEnv());
+  if (prepared.resized || prepared.convertedToJpeg) {
+    await writeLog({
+      projectId: input.projectId,
+      runId: input.runId,
+      level: "info",
+      message: `Gambar dikecilkan untuk WAHA: ${prepared.width}x${prepared.height} ${prepared.ext.toUpperCase()}, ${Math.round(prepared.buffer.length / 1024)} KB.`,
+    });
+  }
+  const data = prepared.buffer.toString("base64");
   const caption = formatCaption(input.caption, input.projectName, input.runCount);
   let allSuccess = true;
 
   for (const groupId of input.groupIds) {
     await writeLog({ projectId: input.projectId, runId: input.runId, message: `Mengirim gambar ke ${groupId}.` });
-    const response = await fetch(`${config.url.replace(/\/$/, "")}/api/sendImage`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "X-Api-Key": config.apiKey,
-      },
-      body: JSON.stringify({
+
+    // Pengirim tahan-banting: timeout per request + retry untuk kegagalan
+    // transien. recoverSession sengaja dimatikan: sesi WAHA di sini sehat dan
+    // dipakai bersama (mis. script Python lain), jadi me-restart sesi adalah
+    // tindakan yang salah — akar masalah gambar ditangani oleh prepareImageForWaha.
+    const outcome = await sendToWahaWithRecovery({
+      config,
+      path: "/api/sendImage",
+      recoverSession: false,
+      body: {
         session: config.session,
         chatId: groupId,
         file: {
-          mimetype: "image/png",
-          filename: `Reporting_${todayId()}.png`,
+          mimetype: prepared.mimetype,
+          filename: `Reporting_${todayId()}.${prepared.ext}`,
           data,
         },
         caption,
-      }),
+      },
+      log: (level, message) =>
+        writeLog({ projectId: input.projectId, runId: input.runId, level, message }),
     });
 
-    if (response.ok) {
-      await writeLog({ projectId: input.projectId, runId: input.runId, level: "success", message: `Berhasil dikirim ke ${groupId}.` });
+    if (outcome.ok) {
+      await writeLog({
+        projectId: input.projectId,
+        runId: input.runId,
+        level: "success",
+        message: outcome.recovered
+          ? `Berhasil dikirim ke ${groupId} (setelah pemulihan sesi WAHA).`
+          : `Berhasil dikirim ke ${groupId}.`,
+      });
     } else {
       allSuccess = false;
-      const responseText = await response.text();
       await writeLog({
         projectId: input.projectId,
         runId: input.runId,
         level: "error",
-        message: `Gagal mengirim ke ${groupId}. Status ${response.status}: ${responseText.slice(0, 500)}`,
+        message: `Gagal mengirim ke ${groupId}. Status ${outcome.status}: ${outcome.bodyText.slice(0, 500)}`,
       });
     }
   }
