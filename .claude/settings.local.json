@@ -1,33 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx prisma *)",
-      "Bash(npx tsc *)",
-      "Bash(~/.claude/skills/gstack/bin/gstack-brain-sync --discover-new)",
-      "Bash(~/.claude/skills/gstack/bin/gstack-brain-sync --once)",
-      "Bash(~/.claude/skills/gstack/bin/gstack-learnings-log '{\"skill\":\"office-hours\",\"type\":\"architecture\",\"key\":\"multi-user-auth-nextjs-telegram\",\"insight\":\"Multi-user auth untuk Next.js app dengan Telegram approval: pisahkan UserRequest dari domain model lain, gunakan requireAdminPage\\(\\)/requireAdminApi\\(\\) terpisah, verifySessionToken lookup by userId bukan username, bcrypt hanya di Node runtime bukan edge.\",\"confidence\":8,\"source\":\"observed\",\"files\":[\"src/lib/auth.ts\",\"prisma/schema.prisma\"]}')",
-      "Bash(npm install *)",
-      "Bash(rtk ls *)",
-      "Bash(rtk grep *)",
-      "Bash(rtk prisma *)",
-      "Bash(./node_modules/.bin/prisma migrate *)",
-      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes, reset the database\" ./node_modules/.bin/prisma migrate reset --force)",
-      "Bash(./node_modules/.bin/prisma db *)",
-      "Bash(./node_modules/.bin/tsc --noEmit)",
-      "Bash(node --experimental-strip-types --test tests/user-service.test.mjs tests/auth.test.mjs)",
-      "Bash(mkdir -p \"D:\\\\sbt-connect\\\\src\\\\app\\\\api\\\\admin\\\\users\\\\[id]\\\\reset-password\" \"D:\\\\sbt-connect\\\\src\\\\app\\\\api\\\\admin\\\\users\\\\[id]\\\\resend-credentials\" 2>&1; echo \"done\")",
-      "Bash(node --experimental-strip-types --test tests/*.test.mjs)",
-      "Bash(rtk git *)",
-      "Bash(xargs grep -l \"redirect\")",
-      "Bash(rtk tsc *)",
-      "Skill(investigate)",
-      "Skill(investigate:*)",
-      "Bash(xargs grep -l \"Queue\\\\|Worker\\\\|Bull\\\\|RabbitMQ\\\\|concurrency\\\\|max.*concurrent\\\\|semaphore\\\\|mutex\")",
-      "Bash(xargs grep -l \"browser\\\\|chromium\\\\|playwright\")",
-      "Bash(rtk find *)",
-      "Bash(node -e \"const ts = require\\('typescript'\\); const config = ts.readConfigFile\\('tsconfig.json', ts.sys.readFile\\).config; const parsed = ts.parseJsonConfigFileContent\\(config, ts.sys, '.'\\); const program = ts.createProgram\\(parsed.fileNames, parsed.options\\); const diagnostics = ts.getPreEmitDiagnostics\\(program\\); diagnostics.forEach\\(d => { const file = d.file ? d.file.fileName + ':' + d.file.getLineAndCharacterOfPosition\\(d.start\\).line : ''; console.log\\(file, ts.flattenDiagnosticMessageText\\(d.messageText, '\\\\n'\\)\\); }\\); console.log\\('Total errors:', diagnostics.length\\);\")",
-      "Bash(Get-ChildItem -Path \"D:\\\\Website\\\\sbt-connect\" -Directory)",
-      "Bash(Select-Object Name)"
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(git branch *)"
     ]
   }
 }
