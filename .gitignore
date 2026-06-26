@@ -14,3 +14,9 @@ prisma/*.db
 prisma/*.db-journal
 storage
 public/previews
+
+*.tsbuildinfo
+
+.agents/
+
+.claude/
